@@ -1,0 +1,396 @@
+/* style.css - Fad Fashiown Dashboard Styling */
+/* Designed for fast live selling - large buttons, clear layout */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #0f0f1a;
+    color: #ffffff;
+    min-height: 100vh;
+}
+
+/* ── HEADER ── */
+.header {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    padding: 15px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #e94560;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #e94560;
+    letter-spacing: 1px;
+}
+
+.status-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.status-dot {
+    font-size: 13px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: #1a1a2e;
+}
+
+.status-dot.connected { color: #00ff88; }
+.status-dot.disconnected { color: #888; }
+
+.detection-badge {
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 700;
+}
+
+.detection-badge.on {
+    background: #00ff8820;
+    color: #00ff88;
+    border: 1px solid #00ff88;
+}
+
+.detection-badge.off {
+    background: #ff000020;
+    color: #ff4444;
+    border: 1px solid #ff4444;
+}
+
+/* ── MAIN LAYOUT ── */
+.main-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ── CARDS ── */
+.card {
+    background: #1a1a2e;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #2a2a4a;
+    margin-bottom: 16px;
+}
+
+.card-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ── BUYER CARD ── */
+.buyer-card {
+    border: 2px solid #e94560;
+    background: linear-gradient(135deg, #1a1a2e, #2a0a15);
+    transition: all 0.3s ease;
+}
+
+.buyer-card.active {
+    border-color: #00ff88;
+    background: linear-gradient(135deg, #1a1a2e, #0a2a15);
+    box-shadow: 0 0 20px #00ff8830;
+}
+
+.buyer-username {
+    font-size: 32px;
+    font-weight: 900;
+    color: #e94560;
+    word-break: break-all;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.buyer-card.active .buyer-username {
+    color: #00ff88;
+}
+
+.buyer-time {
+    font-size: 12px;
+    color: #666;
+    margin-top: 6px;
+}
+
+/* ── FORM ── */
+.form-group {
+    margin-bottom: 14px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #aaa;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 18px;
+    background: #0f0f1a;
+    border: 2px solid #2a2a4a;
+    border-radius: 8px;
+    color: #ffffff;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+    border-color: #e94560;
+}
+
+/* ── BUTTONS ── */
+.button-group {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.btn {
+    padding: 16px 20px;
+    font-size: 16px;
+    font-weight: 800;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Print button - the most important one */
+.btn-print {
+    background: linear-gradient(135deg, #e94560, #c73652);
+    color: white;
+    font-size: 20px;
+    padding: 20px;
+    grid-column: 1 / -1;
+    box-shadow: 0 4px 15px #e9456040;
+}
+
+.btn-print:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ff5570, #e94560);
+    box-shadow: 0 6px 20px #e9456060;
+    transform: translateY(-1px);
+}
+
+.btn-clear {
+    background: #2a2a4a;
+    color: #aaa;
+    padding: 12px 16px;
+    font-size: 13px;
+    grid-column: 1 / -1;
+}
+
+.btn-clear:hover {
+    background: #3a3a5a;
+}
+
+/* Detection buttons */
+.btn-start {
+    background: linear-gradient(135deg, #00aa55, #007733);
+    color: white;
+}
+
+.btn-start:hover:not(:disabled) {
+    background: linear-gradient(135deg, #00cc66, #00aa55);
+}
+
+.btn-stop {
+    background: linear-gradient(135deg, #aa2200, #771500);
+    color: white;
+}
+
+.btn-stop:hover:not(:disabled) {
+    background: linear-gradient(135deg, #cc2200, #aa2200);
+}
+
+/* Manual override */
+.manual-section {
+    border-top: 1px solid #2a2a4a;
+    padding-top: 14px;
+    margin-top: 6px;
+}
+
+.manual-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+}
+
+.manual-row input {
+    padding: 12px 14px;
+    font-size: 15px;
+    background: #0f0f1a;
+    border: 2px solid #2a2a4a;
+    border-radius: 8px;
+    color: #ffffff;
+    outline: none;
+}
+
+.manual-row input:focus {
+    border-color: #f5a623;
+}
+
+.btn-manual {
+    background: #f5a623;
+    color: #000;
+    padding: 12px 18px;
+    font-weight: 900;
+    font-size: 14px;
+}
+
+.btn-manual:hover {
+    background: #ffb733;
+}
+
+.btn-refresh {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.btn-refresh:hover {
+    color: #fff;
+    background: #2a2a4a;
+}
+
+/* ── ORDERS LIST ── */
+.orders-card {
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+    position: sticky;
+    top: 80px;
+}
+
+.order-item {
+    background: #0f0f1a;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border-left: 3px solid #e94560;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.order-username {
+    font-weight: 700;
+    font-size: 15px;
+    color: #00ff88;
+}
+
+.order-item-name {
+    font-size: 13px;
+    color: #ccc;
+}
+
+.order-price {
+    font-size: 18px;
+    font-weight: 900;
+    color: #e94560;
+    text-align: right;
+}
+
+.order-time {
+    font-size: 11px;
+    color: #555;
+    text-align: right;
+}
+
+.order-id {
+    font-size: 10px;
+    color: #444;
+}
+
+.empty-state {
+    text-align: center;
+    color: #444;
+    padding: 40px 20px;
+    font-size: 14px;
+}
+
+/* ── TOAST NOTIFICATIONS ── */
+.toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a2e;
+    color: white;
+    padding: 14px 28px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    border: 1px solid #e94560;
+    z-index: 999;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.toast.success { border-color: #00ff88; color: #00ff88; }
+.toast.error { border-color: #ff4444; color: #ff4444; }
+.toast.hidden { opacity: 0; pointer-events: none; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+    .main-container {
+        grid-template-columns: 1fr;
+    }
+
+    .orders-card {
+        height: 400px;
+        position: relative;
+        top: 0;
+    }
+
+    .buyer-username {
+        font-size: 24px;
+    }
+}

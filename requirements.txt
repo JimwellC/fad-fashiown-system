@@ -1,0 +1,8 @@
+flask==3.0.3
+flask-socketio==5.3.6
+flask-cors==4.0.0
+pillow==11.1.0
+mss==9.0.1
+pytesseract==0.3.10
+opencv-python==4.9.0.80
+simple-websocket==1.0.0

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fad Fashiown - Live Selling</title>
+    <!-- Socket.IO for real-time updates -->
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <!-- ── HEADER ── -->
+    <div class="header">
+        <h1>👗 Fad Fashiown</h1>
+        <div class="status-bar">
+            <span id="connection-status" class="status-dot disconnected">⚪ Connecting...</span>
+            <span id="detection-status" class="detection-badge off">🔴 Detection OFF</span>
+        </div>
+    </div>
+
+    <!-- ── MAIN CONTENT ── -->
+    <div class="main-container">
+
+        <!-- LEFT PANEL: Current Buyer + Order Form -->
+        <div class="left-panel">
+
+            <!-- Current Buyer Card -->
+            <div class="card buyer-card" id="buyer-card">
+                <div class="card-label">📌 PINNED BUYER</div>
+                <div class="buyer-username" id="buyer-username">
+                    Waiting for pinned comment...
+                </div>
+                <div class="buyer-time" id="buyer-time"></div>
+            </div>
+
+            <!-- Order Form -->
+            <div class="card form-card">
+                <div class="card-label">📝 ORDER DETAILS</div>
+
+                <div class="form-group">
+                    <label for="item-name">Item Name / Code</label>
+                    <input
+                        type="text"
+                        id="item-name"
+                        placeholder="e.g. Dress #12, Blouse #4"
+                        autocomplete="off"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <label for="price">Price (₱)</label>
+                    <input
+                        type="number"
+                        id="price"
+                        placeholder="e.g. 350"
+                        min="0"
+                        step="0.01"
+                    />
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="button-group">
+                    <button class="btn btn-print" id="print-btn" onclick="printLabel()">
+                        🖨️ PRINT LABEL
+                    </button>
+                    <button class="btn btn-clear" onclick="clearForm()">
+                        🗑️ CLEAR
+                    </button>
+                </div>
+
+                <!-- Manual buyer override -->
+                <div class="manual-section">
+                    <div class="card-label">✋ MANUAL OVERRIDE</div>
+                    <div class="manual-row">
+                        <input
+                            type="text"
+                            id="manual-username"
+                            placeholder="Type username manually"
+                            autocomplete="off"
+                        />
+                        <button class="btn btn-manual" onclick="setManualBuyer()">
+                            SET
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detection Controls -->
+            <div class="card control-card">
+                <div class="card-label">🔍 DETECTION CONTROL</div>
+                <div class="button-group">
+                    <button class="btn btn-start" id="start-btn" onclick="startDetection()">
+                        ▶️ START DETECTION
+                    </button>
+                    <button class="btn btn-stop" id="stop-btn" onclick="stopDetection()" disabled>
+                        ⏹️ STOP
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT PANEL: Recent Orders -->
+        <div class="right-panel">
+            <div class="card orders-card">
+                <div class="card-label">
+                    📦 RECENT ORDERS
+                    <button class="btn-refresh" onclick="loadOrders()">🔄</button>
+                </div>
+                <div id="orders-list">
+                    <div class="empty-state">No orders yet</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── TOAST NOTIFICATION ── -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- Load our JavaScript -->
+    <script src="/static/app.js"></script>
+
+</body>
+</html>
