@@ -123,25 +123,47 @@ def get_recent_orders(limit=20):
 def detection_loop():
     """
     Background thread that continuously scans the screen
-    for pinned comments.
-    Phase 2 will implement the actual OCR logic here.
+    for pinned comments using OCR.
     """
-    global detection_active, last_confirmed_username
+    global detection_active
+
+    # Import detection modules
+    from detection.capture import capture_region
+    from detection.ocr import detect_pinned_username
+    from detection.calibration import load_calibration
 
     print("🔍 Detection loop started")
 
+    # Load calibration zone if available
+    calibration = load_calibration()
+    if calibration:
+        zone = calibration
+        print(f"📐 Using calibrated zone: {zone}")
+    else:
+        zone = config.CAPTURE_ZONE
+        print("⚠️  No calibration found, using default zone from config.py")
+        print("   Run calibration tool for better accuracy!")
+
     while detection_active:
         try:
-            # Phase 2 will replace this with real OCR detection
-            # For now we just sleep and wait
+            # Step 1: Capture the screen region
+            img = capture_region(zone)
+
+            # Step 2: Run OCR and get confirmed username
+            username = detect_pinned_username(img)
+
+            # Step 3: If valid username detected, update dashboard
+            if username:
+                update_buyer(username)
+
+            # Wait before next scan
             time.sleep(config.SCAN_INTERVAL)
 
         except Exception as e:
             print(f"❌ Detection error: {e}")
-            time.sleep(2)  # Wait before retrying
+            time.sleep(2)
 
     print("🛑 Detection loop stopped")
-
 
 def update_buyer(username):
     """
@@ -284,6 +306,23 @@ def stop_detection():
 def detection_status():
     """Return whether detection is currently active"""
     return jsonify({"active": detection_active})
+
+@app.route('/api/calibrate', methods=['POST'])
+def run_calibration_tool():
+    """Launch the calibration tool in a separate thread"""
+    import threading
+    from detection.calibration import run_calibration
+
+    def calibrate():
+        run_calibration()
+
+    thread = threading.Thread(target=calibrate, daemon=True)
+    thread.start()
+
+    return jsonify({
+        "success": True,
+        "message": "Calibration tool launched. Draw a box around the pinned comment area."
+    })
 
 
 # ─────────────────────────────────────────
