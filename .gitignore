@@ -1,0 +1,8 @@
+venv/
+database/orders.db
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+.vscode/
+config_local.py
