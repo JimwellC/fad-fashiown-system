@@ -12,3 +12,4 @@ mss==9.0.1
 pytesseract==0.3.10
 simple-websocket==1.0.0
 gunicorn==21.2.0
+eventlet==0.35.2
