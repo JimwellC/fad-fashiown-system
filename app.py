@@ -7,8 +7,6 @@ from flask_socketio import SocketIO, join_room
 from flask_cors import CORS
 from flask_login import current_user
 from dotenv import load_dotenv
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 
 # Load environment variables
 load_dotenv()
