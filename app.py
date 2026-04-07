@@ -20,28 +20,27 @@ socketio = SocketIO(cors_allowed_origins="*", async_mode='threading')
 
 
 def create_app():
-    """Application factory - creates and configures Flask app"""
+    """Application factory"""
     app = Flask(__name__)
 
     # ── CONFIGURATION ──
     app.config['SECRET_KEY'] = os.getenv(
         'SECRET_KEY', 'fadfashiown_secret_2024'
     )
+
     base_dir = os.path.abspath(os.path.dirname(__file__))
     default_db = f"sqlite:///{os.path.join(base_dir, 'database', 'fadfashiown.db')}"
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', default_db)
+    database_url = os.getenv('DATABASE_URL', default_db)
 
+    # Railway PostgreSQL fix
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'pool_pre_ping': True
     }
-
-    # Rate limiting - prevent brute force attacks
-    limiter = Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=["200 per day", "50 per hour"]
-    )
 
     # ── INITIALIZE EXTENSIONS ──
     db.init_app(app)
@@ -50,17 +49,16 @@ def create_app():
     socketio.init_app(app)
     CORS(app)
 
-    # ── LOGIN MANAGER SETTINGS ──
+    # ── LOGIN MANAGER ──
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Please login to access the dashboard'
     login_manager.login_message_category = 'error'
 
-    # User loader for Flask-Login
     from auth.models import Client
 
     @login_manager.user_loader
     def load_user(user_id):
-        return Client.query.get(int(user_id))
+        return db.session.get(Client, int(user_id))
 
     # ── REGISTER BLUEPRINTS ──
     from auth.routes import auth
@@ -73,10 +71,9 @@ def create_app():
 
     # ── CREATE DATABASE TABLES ──
     with app.app_context():
-        # Get absolute path to database folder
-        base_dir = os.path.abspath(os.path.dirname(__file__))
-        db_dir = os.path.join(base_dir, 'database')
-        os.makedirs(db_dir, exist_ok=True)
+        if 'sqlite' in database_url:
+            db_dir = os.path.join(base_dir, 'database')
+            os.makedirs(db_dir, exist_ok=True)
         db.create_all()
         print("✅ Database tables created")
 
@@ -89,19 +86,16 @@ def create_app():
 # ── SOCKETIO EVENTS ──
 @socketio.on('connect')
 def handle_connect():
-    """Client dashboard connected"""
     if current_user.is_authenticated:
-        # Join a room specific to this client
         room = f"client_{current_user.id}"
         join_room(room)
-        print(f"📱 Dashboard connected: {current_user.business_name}")
+        print(f"📱 Connected: {current_user.business_name}")
 
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    """Client dashboard disconnected"""
     if current_user.is_authenticated:
-        print(f"📱 Dashboard disconnected: {current_user.business_name}")
+        print(f"📱 Disconnected: {current_user.business_name}")
 
 
 # ── MAIN ENTRY POINT ──
@@ -121,7 +115,7 @@ if __name__ == '__main__':
     socketio.run(
         app,
         host='0.0.0.0',
-        port=5000,
-        debug=True,
+        port=int(os.getenv('PORT', 5000)),
+        debug=os.getenv('DEBUG', 'False') == 'True',
         use_reloader=False
     )
