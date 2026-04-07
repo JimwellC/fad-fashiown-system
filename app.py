@@ -229,6 +229,55 @@ def set_buyer_manually():
     update_buyer(username)
     return jsonify({"success": True, "username": username})
 
+@app.route('/api/new-comment', methods=['POST', 'OPTIONS'])
+def new_comment():
+    """
+    Receives comments from Chrome extension.
+    Accepts text/plain to bypass CORS preflight.
+    """
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'success': True})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Headers'] = '*'
+        return response
+
+    # Accept both JSON and text/plain (from extension)
+    try:
+        if request.content_type and 'application/json' in request.content_type:
+            data = request.get_json()
+        else:
+            # Extension sends as text/plain to avoid CORS preflight
+            import json
+            data = json.loads(request.get_data(as_text=True))
+    except Exception as e:
+        print(f"❌ Parse error: {e}")
+        return jsonify({"error": "Invalid data"}), 400
+
+    if not data:
+        return jsonify({"error": "No data"}), 400
+
+    username = data.get('username', '').strip()
+    message = data.get('message', '').strip()
+    is_buyer = data.get('is_buyer', False)
+
+    if not username:
+        return jsonify({"error": "No username"}), 400
+
+    print(f"💬 Comment received: @{username}: '{message}' {'🛒' if is_buyer else ''}")
+
+    # Push to dashboard via WebSocket
+    socketio.emit('new_comment', {
+        "username": username,
+        "message": message,
+        "is_buyer": is_buyer
+    })
+
+    # If buyer comment, auto-set as current buyer
+    if is_buyer:
+        update_buyer(username)
+
+    return jsonify({"success": True})
 
 @app.route('/api/print-label', methods=['POST'])
 def print_label():

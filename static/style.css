@@ -50,24 +50,6 @@ body {
 .status-dot.connected { color: #00ff88; }
 .status-dot.disconnected { color: #888; }
 
-.detection-badge {
-    font-size: 13px;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-weight: 700;
-}
-
-.detection-badge.on {
-    background: #00ff8820;
-    color: #00ff88;
-    border: 1px solid #00ff88;
-}
-
-.detection-badge.off {
-    background: #ff000020;
-    color: #ff4444;
-    border: 1px solid #ff4444;
-}
 
 /* ── MAIN LAYOUT ── */
 .main-container {
@@ -222,24 +204,6 @@ body {
     background: #3a3a5a;
 }
 
-/* Detection buttons */
-.btn-start {
-    background: linear-gradient(135deg, #00aa55, #007733);
-    color: white;
-}
-
-.btn-start:hover:not(:disabled) {
-    background: linear-gradient(135deg, #00cc66, #00aa55);
-}
-
-.btn-stop {
-    background: linear-gradient(135deg, #aa2200, #771500);
-    color: white;
-}
-
-.btn-stop:hover:not(:disabled) {
-    background: linear-gradient(135deg, #cc2200, #aa2200);
-}
 
 /* Manual override */
 .manual-section {

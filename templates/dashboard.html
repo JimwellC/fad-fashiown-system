@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fad Fashiown - Live Selling</title>
-    <!-- Socket.IO for real-time updates -->
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -15,21 +14,21 @@
         <h1>👗 Fad Fashiown</h1>
         <div class="status-bar">
             <span id="connection-status" class="status-dot disconnected">⚪ Connecting...</span>
-            <span id="detection-status" class="detection-badge off">🔴 Detection OFF</span>
+            <span id="detection-status" class="detection-badge off">🔴 Extension OFF</span>
         </div>
     </div>
 
     <!-- ── MAIN CONTENT ── -->
     <div class="main-container">
 
-        <!-- LEFT PANEL: Current Buyer + Order Form -->
+        <!-- LEFT PANEL -->
         <div class="left-panel">
 
             <!-- Current Buyer Card -->
             <div class="card buyer-card" id="buyer-card">
-                <div class="card-label">📌 PINNED BUYER</div>
+                <div class="card-label">📌 CURRENT BUYER</div>
                 <div class="buyer-username" id="buyer-username">
-                    Waiting for pinned comment...
+                    Waiting for buyer...
                 </div>
                 <div class="buyer-time" id="buyer-time"></div>
             </div>
@@ -59,7 +58,6 @@
                     />
                 </div>
 
-                <!-- Action Buttons -->
                 <div class="button-group">
                     <button class="btn btn-print" id="print-btn" onclick="printLabel()">
                         🖨️ PRINT LABEL
@@ -86,23 +84,36 @@
                 </div>
             </div>
 
-            <!-- Detection Controls -->
-            <div class="card control-card">
-                <div class="card-label">🔍 DETECTION CONTROL</div>
-                <div class="button-group">
-                    <button class="btn btn-start" id="start-btn" onclick="startDetection()">
-                        ▶️ START DETECTION
-                    </button>
-                    <button class="btn btn-stop" id="stop-btn" onclick="stopDetection()" disabled>
-                        ⏹️ STOP
-                    </button>
+        </div>
+
+        <!-- RIGHT PANEL: Comments + Orders -->
+        <div class="right-panel">
+
+            <!-- Live Comments Card -->
+            <div class="card comments-card">
+                <div class="card-label">
+                    💬 LIVE COMMENTS
+                    <span id="comment-count"
+                        style="background:#e94560;
+                               color:white;
+                               padding:2px 8px;
+                               border-radius:10px;
+                               font-size:11px">
+                        0
+                    </span>
+                </div>
+                <div class="comments-hint">
+                    🟢 Green = "mine" comment → Click to set as buyer
+                </div>
+                <div id="comments-list">
+                    <div class="empty-state">
+                        Waiting for comments...<br>
+                        <small style="color:#333">Make sure extension is active on TikTok</small>
+                    </div>
                 </div>
             </div>
 
-        </div>
-
-        <!-- RIGHT PANEL: Recent Orders -->
-        <div class="right-panel">
+            <!-- Recent Orders Card -->
             <div class="card orders-card">
                 <div class="card-label">
                     📦 RECENT ORDERS
@@ -112,6 +123,7 @@
                     <div class="empty-state">No orders yet</div>
                 </div>
             </div>
+
         </div>
 
     </div>
@@ -119,7 +131,6 @@
     <!-- ── TOAST NOTIFICATION ── -->
     <div id="toast" class="toast hidden"></div>
 
-    <!-- Load our JavaScript -->
     <script src="/static/app.js"></script>
 
 </body>

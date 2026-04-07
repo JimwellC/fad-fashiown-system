@@ -1,18 +1,19 @@
 // app.js - Fad Fashiown Dashboard Logic
-// Handles real-time updates, form submission, and order display
+// Handles real-time updates, form submission, order display, and live comments
 
 // ── WEBSOCKET CONNECTION ──
 const socket = io();
 
 // Current buyer username (kept in memory)
 let currentBuyer = '';
+let commentCount = 0;
 
 // ── CONNECTION EVENTS ──
 socket.on('connect', function () {
     console.log('✅ Connected to server');
     updateConnectionStatus(true);
+    updateExtensionStatus(false); // Default off until comment received
     loadOrders();
-    checkDetectionStatus();
 });
 
 socket.on('disconnect', function () {
@@ -20,8 +21,7 @@ socket.on('disconnect', function () {
     updateConnectionStatus(false);
 });
 
-// ── BUYER DETECTION EVENT ──
-// This fires instantly when a new pinned comment is detected
+// ── BUYER DETECTED EVENT ──
 socket.on('buyer_detected', function (data) {
     if (data.username && data.username.trim() !== '') {
         setBuyer(data.username, data.detected_at);
@@ -29,11 +29,23 @@ socket.on('buyer_detected', function (data) {
 });
 
 // ── ORDER SAVED EVENT ──
-// Fires when a new order is saved - updates the orders list
 socket.on('order_saved', function (order) {
     prependOrder(order);
-    showToast('✅ Order saved & label printed!', 'success');
+    showToast('✅ Order saved!', 'success');
 });
+
+// ── NEW COMMENT EVENT ──
+// Fires every time someone comments on TikTok Live
+socket.on('new_comment', function (data) {
+    addComment(data);
+    updateExtensionStatus(true); // Mark extension as active
+
+    if (data.is_buyer) {
+        setBuyer(data.username, new Date().toLocaleTimeString());
+        showToast('🛒 Buyer: @' + data.username, 'success');
+    }
+});
+
 
 // ── SET BUYER DISPLAY ──
 function setBuyer(username, detectedAt) {
@@ -46,20 +58,87 @@ function setBuyer(username, detectedAt) {
     usernameEl.textContent = '@' + username;
     timeEl.textContent = detectedAt ? 'Detected at ' + detectedAt : '';
 
-    // Flash the card green to signal new detection
+    // Flash green to signal new buyer
     card.classList.add('active');
+
+    // Auto-focus item name field for fast typing
+    document.getElementById('item-name').focus();
 
     console.log('👤 Buyer set:', username);
 }
+
+
+// ── ADD COMMENT TO LIST ──
+function addComment(data) {
+    const list = document.getElementById('comments-list');
+    if (!list) return;
+
+    // Remove empty state
+    const empty = list.querySelector('.empty-state');
+    if (empty) empty.remove();
+
+    // Keep only last 50 comments for performance
+    const existing = list.querySelectorAll('.comment-item');
+    if (existing.length >= 50) {
+        existing[existing.length - 1].remove();
+    }
+
+    // Update comment counter
+    commentCount++;
+    const countEl = document.getElementById('comment-count');
+    if (countEl) countEl.textContent = commentCount;
+
+    // Create comment element
+    const div = document.createElement('div');
+    div.className = 'comment-item' + (data.is_buyer ? ' buyer' : '');
+
+    div.innerHTML = `
+        <div class="comment-username">@${data.username}</div>
+        <div class="comment-message">${data.message}</div>
+        <div class="comment-click-hint">
+            ${data.is_buyer ? '🛒 Click to confirm as buyer' : '👆 Click to select as buyer'}
+        </div>
+    `;
+
+    // Click to manually set as buyer
+    div.addEventListener('click', function () {
+        // Set as buyer
+        fetch('/api/set-buyer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: data.username })
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                showToast('✅ Buyer set: @' + data.username, 'success');
+
+                // Dim all comments, highlight selected
+                document.querySelectorAll('.comment-item').forEach(el => {
+                    el.style.opacity = '0.4';
+                });
+                div.style.opacity = '1';
+                div.classList.add('selected');
+
+                // Focus item name for fast entry
+                document.getElementById('item-name').focus();
+            }
+        })
+        .catch(err => showToast('❌ Error setting buyer', 'error'));
+    });
+
+    // Add to TOP of list (newest first)
+    list.insertBefore(div, list.firstChild);
+}
+
 
 // ── PRINT LABEL ──
 function printLabel() {
     const itemName = document.getElementById('item-name').value.trim();
     const price = document.getElementById('price').value.trim();
 
-    // Validate inputs
     if (!currentBuyer) {
-        showToast('❌ No buyer detected yet!', 'error');
+        showToast('❌ No buyer selected yet!', 'error');
         return;
     }
 
@@ -75,12 +154,10 @@ function printLabel() {
         return;
     }
 
-    // Disable print button to prevent double-clicking
     const printBtn = document.getElementById('print-btn');
     printBtn.disabled = true;
     printBtn.textContent = '⏳ Printing...';
 
-    // Send to backend
     fetch('/api/print-label', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -95,20 +172,29 @@ function printLabel() {
         if (data.success) {
             showToast('✅ Label printed! Ready for next buyer.', 'success');
             clearForm();
+            resetCommentHighlights();
         } else {
             showToast('❌ Error: ' + data.error, 'error');
         }
     })
     .catch(err => {
         showToast('❌ Connection error. Try again.', 'error');
-        console.error(err);
     })
     .finally(() => {
-        // Re-enable print button
         printBtn.disabled = false;
         printBtn.textContent = '🖨️ PRINT LABEL';
     });
 }
+
+
+// ── RESET COMMENT HIGHLIGHTS ──
+function resetCommentHighlights() {
+    document.querySelectorAll('.comment-item').forEach(el => {
+        el.style.opacity = '1';
+        el.classList.remove('selected');
+    });
+}
+
 
 // ── CLEAR FORM ──
 function clearForm() {
@@ -116,6 +202,7 @@ function clearForm() {
     document.getElementById('price').value = '';
     document.getElementById('item-name').focus();
 }
+
 
 // ── MANUAL BUYER OVERRIDE ──
 function setManualBuyer() {
@@ -136,13 +223,12 @@ function setManualBuyer() {
     .then(data => {
         if (data.success) {
             input.value = '';
-            showToast('✅ Buyer set manually: @' + username, 'success');
+            showToast('✅ Buyer set: @' + username, 'success');
         }
     })
-    .catch(err => {
-        showToast('❌ Error setting buyer', 'error');
-    });
+    .catch(err => showToast('❌ Error setting buyer', 'error'));
 }
+
 
 // ── LOAD ORDERS ──
 function loadOrders() {
@@ -150,27 +236,24 @@ function loadOrders() {
         .then(res => res.json())
         .then(orders => {
             const list = document.getElementById('orders-list');
-
             if (orders.length === 0) {
                 list.innerHTML = '<div class="empty-state">No orders yet</div>';
                 return;
             }
-
             list.innerHTML = '';
             orders.forEach(order => prependOrder(order, false));
         })
         .catch(err => console.error('Error loading orders:', err));
 }
 
+
 // ── ADD ORDER TO LIST ──
 function prependOrder(order, animate = true) {
     const list = document.getElementById('orders-list');
 
-    // Remove empty state if present
     const emptyState = list.querySelector('.empty-state');
     if (emptyState) emptyState.remove();
 
-    // Format time to show only HH:MM
     const time = order.timestamp
         ? order.timestamp.split(' ')[1].substring(0, 5)
         : '';
@@ -191,34 +274,22 @@ function prependOrder(order, animate = true) {
         </div>
     `;
 
-    // Add to top of list
     list.insertBefore(div, list.firstChild);
 }
 
-// ── DETECTION CONTROLS ──
-function startDetection() {
-    fetch('/api/detection/start', { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-            updateDetectionStatus(true);
-            showToast('🔍 Detection started', 'success');
-        });
+// ── EXTENSION STATUS ──
+function updateExtensionStatus(active) {
+    const badge = document.getElementById('detection-status');
+    if (!badge) return;
+    if (active) {
+        badge.textContent = '🟢 Extension ON';
+        badge.className = 'detection-badge on';
+    } else {
+        badge.textContent = '🔴 Extension OFF';
+        badge.className = 'detection-badge off';
+    }
 }
 
-function stopDetection() {
-    fetch('/api/detection/stop', { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-            updateDetectionStatus(false);
-            showToast('⏹️ Detection stopped', 'success');
-        });
-}
-
-function checkDetectionStatus() {
-    fetch('/api/detection/status')
-        .then(res => res.json())
-        .then(data => updateDetectionStatus(data.active));
-}
 
 // ── UI STATE HELPERS ──
 function updateConnectionStatus(connected) {
@@ -232,23 +303,6 @@ function updateConnectionStatus(connected) {
     }
 }
 
-function updateDetectionStatus(active) {
-    const badge = document.getElementById('detection-status');
-    const startBtn = document.getElementById('start-btn');
-    const stopBtn = document.getElementById('stop-btn');
-
-    if (active) {
-        badge.textContent = '🟢 Detection ON';
-        badge.className = 'detection-badge on';
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-    } else {
-        badge.textContent = '🔴 Detection OFF';
-        badge.className = 'detection-badge off';
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
-    }
-}
 
 // ── TOAST NOTIFICATIONS ──
 let toastTimeout;
@@ -263,23 +317,24 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
+
 // ── KEYBOARD SHORTCUTS ──
-// Press Enter in item name field → jump to price
 document.addEventListener('DOMContentLoaded', function () {
+    // Enter in item name → jump to price
     document.getElementById('item-name').addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
             document.getElementById('price').focus();
         }
     });
 
-    // Press Enter in price field → trigger print
+    // Enter in price → print label
     document.getElementById('price').addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
             printLabel();
         }
     });
 
-    // Press Enter in manual username field → set buyer
+    // Enter in manual username → set buyer
     document.getElementById('manual-username').addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
             setManualBuyer();

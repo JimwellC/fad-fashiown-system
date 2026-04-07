@@ -1,11 +1,9 @@
 # detection/ocr.py
 # Reads text from screenshots using Tesseract OCR
-# Extracts and cleans the TikTok username from pinned comment
+# Uses only Pillow for image processing (no opencv needed)
 
 import pytesseract
-import cv2
-import numpy as np
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 import re
 import config
 
@@ -16,165 +14,121 @@ _consecutive_reads = {}
 def preprocess_image(img):
     """
     Enhances the image before OCR to improve accuracy.
-    TikTok UI is dark with white/colored text - we optimize for this.
-    
-    Args:
-        img: PIL Image
-    
-    Returns:
-        Processed PIL Image ready for OCR
+    Uses only Pillow - no opencv required.
     """
-    # Convert PIL to OpenCV format
-    img_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-    
     # Convert to grayscale
-    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
-    
-    # Increase contrast using CLAHE
-    # (Contrast Limited Adaptive Histogram Equalization)
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(gray)
-    
-    # Apply threshold to make text sharper
-    # This converts image to pure black and white
-    _, thresh = cv2.threshold(
-        enhanced, 0, 255,
-        cv2.THRESH_BINARY + cv2.THRESH_OTSU
-    )
-    
-    # Scale up image 2x for better OCR accuracy
-    height, width = thresh.shape
-    scaled = cv2.resize(
-        thresh,
+    gray = img.convert('L')
+
+    # Increase size 2x for better OCR accuracy
+    width, height = gray.size
+    scaled = gray.resize(
         (width * 2, height * 2),
-        interpolation=cv2.INTER_CUBIC
+        Image.LANCZOS
     )
-    
-    # Convert back to PIL Image
-    result = Image.fromarray(scaled)
-    
+
+    # Increase contrast
+    enhancer = ImageEnhance.Contrast(scaled)
+    contrasted = enhancer.enhance(3.0)
+
+    # Increase sharpness
+    sharpener = ImageEnhance.Sharpness(contrasted)
+    sharpened = sharpener.enhance(2.0)
+
+    # Apply threshold to make text pure black/white
+    # Pixels brighter than 128 become white, darker become black
+    threshold = sharpened.point(lambda x: 255 if x > 128 else 0, '1')
+
+    # Convert back to RGB for tesseract
+    result = threshold.convert('RGB')
+
     return result
 
 
 def extract_text(img):
-    """
-    Runs OCR on the image and returns raw text.
-    
-    Args:
-        img: PIL Image (already preprocessed)
-    
-    Returns:
-        Raw string of detected text
-    """
-    # Tesseract config for better username detection
-    # --psm 7 = treat image as single line of text
-    # --oem 3 = use LSTM neural net engine
+    """Runs OCR on the image and returns raw text."""
+    # --psm 7 = single line of text
+    # --oem 3 = LSTM engine
     custom_config = r'--oem 3 --psm 7'
-    
     text = pytesseract.image_to_string(img, config=custom_config)
-    
     return text
 
 
 def clean_username(raw_text):
     """
     Cleans up OCR output to extract just the username.
-    TikTok usernames can contain letters, numbers, dots, underscores.
-    
-    Args:
-        raw_text: Raw string from OCR
-    
-    Returns:
-        Cleaned username string or empty string if invalid
+    TikTok usernames: letters, numbers, dots, underscores.
     """
     if not raw_text:
         return ""
-    
+
     # Remove newlines and extra spaces
     text = raw_text.strip().replace('\n', ' ').replace('\r', '')
-    
-    # Remove the @ symbol if present (we add it back in display)
+
+    # Remove @ symbol (we add it back in display)
     text = text.replace('@', '')
-    
+
     # Keep only valid TikTok username characters
-    # TikTok allows: letters, numbers, underscores, dots
     text = re.sub(r'[^a-zA-Z0-9._]', '', text)
-    
+
     # Remove leading/trailing dots or underscores
     text = text.strip('._')
-    
+
     return text.lower()
 
 
 def is_valid_username(username):
     """
-    Checks if the extracted text looks like a real TikTok username.
-    
-    Args:
-        username: Cleaned username string
-    
-    Returns:
-        True if valid, False if garbage OCR output
+    Checks if extracted text looks like a real TikTok username.
     """
     if not username:
         return False
-    
+
     # Must be at least 3 characters
     if len(username) < config.MIN_USERNAME_LENGTH:
         return False
-    
+
     # Must be no more than 24 characters (TikTok limit)
     if len(username) > 24:
         return False
-    
+
     # Must contain at least one letter or number
     if not re.search(r'[a-zA-Z0-9]', username):
         return False
-    
+
     # Reject common OCR garbage patterns
-    garbage_patterns = ['|||', '---', '===', '...', '###']
+    garbage_patterns = ['|||', '---', '===', '###']
     for pattern in garbage_patterns:
         if pattern in username:
             return False
-    
+
     return True
 
 
 def confirm_username(username):
     """
     Uses consecutive read confirmation to prevent false positives.
-    The same username must be read N times before it's confirmed.
-    
-    Args:
-        username: Cleaned username string
-    
-    Returns:
-        True if username is confirmed (seen enough times), False otherwise
+    Same username must be read N times before confirmed.
     """
     global _consecutive_reads
-    
+
     if not username:
         _consecutive_reads = {}
         return False
-    
+
     # Count how many times we've seen this username
     if username not in _consecutive_reads:
-        # Reset all counts (new username appeared)
         _consecutive_reads = {username: 1}
     else:
         _consecutive_reads[username] += 1
-    
+
     count = _consecutive_reads[username]
-    
     print(f"👁️  OCR read '{username}' ({count}/{config.CONFIRMATION_THRESHOLD})")
-    
-    # Only confirm after seeing it N consecutive times
+
     if count >= config.CONFIRMATION_THRESHOLD:
-        # Reset counter so same username 
-        # doesn't trigger again unless it changes
+        # Reset so same username doesn't trigger again
         _consecutive_reads = {}
         return True
-    
+
     return False
 
 
@@ -182,19 +136,31 @@ def detect_pinned_username(img):
     """
     Main detection function.
     Takes a screenshot image and returns confirmed username or None.
-    
-    Args:
-        img: PIL Image of the capture zone
-    
-    Returns:
-        Confirmed username string, or None if not ready yet
     """
     try:
-        # Step 1: Preprocess image for better OCR
+        # Step 1: Preprocess image
         processed = preprocess_image(img)
-        
+
         # Step 2: Extract raw text
         raw_text = extract_text(processed)
-        
+
         # Step 3: Clean up the text
         username = clean_username(raw_text)
+
+        if not username:
+            return None
+
+        # Step 4: Validate it looks like a username
+        if not is_valid_username(username):
+            print(f"⚠️  Invalid username rejected: '{username}'")
+            return None
+
+        # Step 5: Confirm via consecutive reads
+        if confirm_username(username):
+            return username
+
+        return None
+
+    except Exception as e:
+        print(f"❌ OCR Error: {e}")
+        return None
