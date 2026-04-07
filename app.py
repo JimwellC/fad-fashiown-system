@@ -47,7 +47,18 @@ def create_app():
     bcrypt.init_app(app)
     login_manager.init_app(app)
     socketio.init_app(app)
-    CORS(app)
+    CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "https://www.tiktok.com",
+            "https://*.tiktok.com",
+            "http://localhost:5000",
+            "https://web-production-1fba.up.railway.app"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
     # ── LOGIN MANAGER ──
     login_manager.login_view = 'auth.login'
