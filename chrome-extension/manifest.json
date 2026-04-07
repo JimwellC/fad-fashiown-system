@@ -11,9 +11,12 @@
   ],
 
   "host_permissions": [
-    "https://www.tiktok.com/*",
-    "http://localhost:5000/*"
-  ],
+        "https://www.tiktok.com/*",
+        "https://*.tiktok.com/*",
+        "https://web-production-1fba.up.railway.app/*",
+        "http://localhost:5000/*",
+        "file:///*"
+    ],
 
   "content_scripts": [
     {

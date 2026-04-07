@@ -8,7 +8,8 @@
 
     console.log('👗 Fad Fashiown - Comment Monitor loaded');
 
-    const BACKEND_URL = 'http://localhost:5000/api/new-comment';
+    const BACKEND_URL = 'https://web-production-1fba.up.railway.app/api/new-comment';
+    const SET_BUYER_URL = 'https://web-production-1fba.up.railway.app/api/set-buyer';
 
     // Buyer keywords in Filipino and English
     const BUYER_KEYWORDS = [
