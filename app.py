@@ -7,6 +7,8 @@ from flask_socketio import SocketIO, join_room
 from flask_cors import CORS
 from flask_login import current_user
 from dotenv import load_dotenv
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Load environment variables
 load_dotenv()
@@ -30,11 +32,18 @@ def create_app():
     base_dir = os.path.abspath(os.path.dirname(__file__))
     default_db = f"sqlite:///{os.path.join(base_dir, 'database', 'fadfashiown.db')}"
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', default_db)
-    
+
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'pool_pre_ping': True
     }
+
+    # Rate limiting - prevent brute force attacks
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["200 per day", "50 per hour"]
+    )
 
     # ── INITIALIZE EXTENSIONS ──
     db.init_app(app)

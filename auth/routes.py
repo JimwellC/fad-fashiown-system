@@ -7,6 +7,8 @@ from functools import wraps
 from datetime import datetime
 from database import db
 from auth.models import Client
+from flask_limiter import Limiter
+
 
 auth = Blueprint('auth', __name__)
 
@@ -26,6 +28,7 @@ def admin_required(f):
 
 # ── LOGIN ──
 @auth.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")  # Max 10 login attempts per minute
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard.index'))
