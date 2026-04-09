@@ -1564,96 +1564,113 @@ tbody td {
 }
 
 @media print {
-    body * { visibility: hidden; }
+    /* Hide everything on page */
+    body * {
+        visibility: hidden !important;
+    }
 
+    /* Show only the label */
     .print-label-container,
     .print-label-container * {
-        visibility: visible;
+        visibility: visible !important;
     }
 
     .print-label-container {
-        display: block !important;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        display: flex !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        align-items: flex-start !important;
+        justify-content: center !important;
+        background: white !important;
+        padding: 4mm !important;
     }
 
     .print-label-box {
-        width: 80mm;
-        margin: 20mm auto;
-        padding: 8mm;
+        width: 52mm;
+        padding: 6mm 8mm;
         font-family: 'Arial', sans-serif;
-        border: 2px solid #000;
+        border: 1.5px solid #000;
         text-align: center;
+        background: white;
     }
 
     .print-brand {
-        font-size: 18pt;
+        font-size: 13pt;
         font-weight: 900;
         letter-spacing: 3px;
-        margin-bottom: 2px;
+        text-transform: uppercase;
+        margin-bottom: 1px;
+        color: #000;
     }
 
     .print-sub {
-        font-size: 9pt;
-        letter-spacing: 2px;
-        color: #555;
+        font-size: 8pt;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        color: #444;
         margin-bottom: 4px;
     }
 
     .print-divider {
-        border-top: 1px dashed #000;
-        margin: 6px 0;
+        border: none;
+        border-top: 1px dashed #666;
+        margin: 5px 0;
     }
 
     .print-buyer-label {
-        font-size: 8pt;
-        letter-spacing: 2px;
-        color: #555;
+        font-size: 7pt;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        color: #666;
         margin-bottom: 2px;
     }
 
     .print-buyer {
-        font-size: 20pt;
+        font-size: 15pt;
         font-weight: 900;
-        letter-spacing: 1px;
-        margin-bottom: 4px;
+        color: #000;
         word-break: break-all;
+        line-height: 1.2;
+        margin-bottom: 4px;
     }
 
     .print-row {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        margin: 4px 0;
+        align-items: baseline;
+        margin: 3px 0;
         text-align: left;
     }
 
     .print-field-label {
-        font-size: 8pt;
+        font-size: 7pt;
         font-weight: 700;
-        letter-spacing: 1px;
-        color: #555;
-        min-width: 40px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #666;
+        min-width: 36px;
     }
 
     .print-field-value {
-        font-size: 13pt;
+        font-size: 12pt;
         font-weight: 900;
+        color: #000;
         text-align: right;
     }
 
     .print-meta {
-        font-size: 8pt;
-        color: #555;
+        font-size: 7pt;
+        color: #666;
         margin-top: 2px;
+        letter-spacing: 0.5px;
     }
 
     @page {
+        size: 58mm 120mm;
         margin: 0;
-        size: 80mm auto;
     }
 }
 
