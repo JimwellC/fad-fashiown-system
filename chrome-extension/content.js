@@ -36,11 +36,19 @@
     }
 
 
+    // ── CHECK IF MESSAGE IS A NUMBER CODE ──
+    function isNumberCode(msg) {
+        const trimmed = msg.trim();
+        return /^\d+$/.test(trimmed) ||       // pure number: 2, 81, 720
+            /^[lL]\d+$/.test(trimmed) ||   // L + number: L2, L23, L549
+            /^\d+[lL]$/.test(trimmed);     // number + L: 2L
+    }
+
+
     // ── CHECK IF COMMENT IS A BUYER ──
     function checkIsBuyer(message) {
         const msgLower = message.toLowerCase().trim();
 
-        // Keywords mode
         if (detectionMode === 'keywords') {
             return buyerKeywords.some(k =>
                 msgLower === k ||
@@ -50,12 +58,10 @@
             );
         }
 
-        // Numbers mode - comment is purely a number or number code
         if (detectionMode === 'numbers') {
-            return /^\d+$/.test(msgLower.trim());
+            return isNumberCode(message.trim());
         }
 
-        // Both mode
         if (detectionMode === 'both') {
             const hasKeyword = buyerKeywords.some(k =>
                 msgLower === k ||
@@ -63,8 +69,7 @@
                 msgLower.endsWith(' ' + k) ||
                 msgLower.includes(' ' + k + ' ')
             );
-            const isNumber = /^\d+$/.test(msgLower.trim());
-            return hasKeyword || isNumber;
+            return hasKeyword || isNumberCode(message.trim());
         }
 
         return false;
@@ -191,8 +196,10 @@
     function waitForLivePage() {
         console.log('Waiting for TikTok Live...');
 
-        // Load settings first then start watching
         loadSettings().then(() => {
+    // Reload settings every 5 minutes automatically
+        setInterval(loadSettings, 5 * 60 * 1000);
+
             const check = setInterval(() => {
                 const isLive = window.location.href.includes('/live');
                 const chatContainer = document.querySelector('[data-e2e="live-chat-container"]');
