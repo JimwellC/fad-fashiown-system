@@ -1555,6 +1555,108 @@ tbody td {
     font-weight: 600;
 }
 
+/* ════════════════════════════════════════════
+   PRINT LABEL
+   ════════════════════════════════════════════ */
+
+.print-label-container {
+    display: none;
+}
+
+@media print {
+    body * { visibility: hidden; }
+
+    .print-label-container,
+    .print-label-container * {
+        visibility: visible;
+    }
+
+    .print-label-container {
+        display: block !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .print-label-box {
+        width: 80mm;
+        margin: 20mm auto;
+        padding: 8mm;
+        font-family: 'Arial', sans-serif;
+        border: 2px solid #000;
+        text-align: center;
+    }
+
+    .print-brand {
+        font-size: 18pt;
+        font-weight: 900;
+        letter-spacing: 3px;
+        margin-bottom: 2px;
+    }
+
+    .print-sub {
+        font-size: 9pt;
+        letter-spacing: 2px;
+        color: #555;
+        margin-bottom: 4px;
+    }
+
+    .print-divider {
+        border-top: 1px dashed #000;
+        margin: 6px 0;
+    }
+
+    .print-buyer-label {
+        font-size: 8pt;
+        letter-spacing: 2px;
+        color: #555;
+        margin-bottom: 2px;
+    }
+
+    .print-buyer {
+        font-size: 20pt;
+        font-weight: 900;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+        word-break: break-all;
+    }
+
+    .print-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 4px 0;
+        text-align: left;
+    }
+
+    .print-field-label {
+        font-size: 8pt;
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: #555;
+        min-width: 40px;
+    }
+
+    .print-field-value {
+        font-size: 13pt;
+        font-weight: 900;
+        text-align: right;
+    }
+
+    .print-meta {
+        font-size: 8pt;
+        color: #555;
+        margin-top: 2px;
+    }
+
+    @page {
+        margin: 0;
+        size: 80mm auto;
+    }
+}
+
 @media (max-width: 768px) {
     .settings-mode-grid {
         grid-template-columns: 1fr;
