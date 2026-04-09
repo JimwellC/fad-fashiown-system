@@ -97,7 +97,7 @@
             </div>
             <div class="card-body">
                 <div class="comments-hint">
-                    Comments highlighted in green contain "mine" — click to set as buyer
+                    Comments highlighted in green are potential buyers — click to select as buyer
                 </div>
                 <div class="comments-list" id="comments-list">
                     <div class="empty-state">
@@ -125,6 +125,29 @@
 
 </div>
 {% endblock %}
+
+<!-- Hidden Print Label -->
+<div id="print-label" class="print-label-container">
+    <div class="print-label-box">
+        <div class="print-brand">FAD FASHIOWN</div>
+        <div class="print-sub">Live Selling</div>
+        <div class="print-divider"></div>
+        <div class="print-buyer-label">BUYER</div>
+        <div class="print-buyer">@<span id="print-username"></span></div>
+        <div class="print-divider"></div>
+        <div class="print-row">
+            <span class="print-field-label">ITEM</span>
+            <span class="print-field-value" id="print-item"></span>
+        </div>
+        <div class="print-row">
+            <span class="print-field-label">PRICE</span>
+            <span class="print-field-value" id="print-price"></span>
+        </div>
+        <div class="print-divider"></div>
+        <div class="print-meta" id="print-date"></div>
+        <div class="print-meta" id="print-order-id"></div>
+    </div>
+</div>
 
 {% block scripts %}
 <script src="/static/app.js"></script>
