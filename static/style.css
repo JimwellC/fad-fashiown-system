@@ -871,51 +871,109 @@ tbody td {
     gap: 24px;
 }
 
+/* ── CLIENT CARDS ── */
 .client-card {
-    background: var(--cream);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 16px;
-    margin-bottom: 10px;
-    transition: border-color 0.2s;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 16px;
+    transition: box-shadow 0.2s;
+    overflow: hidden;
 }
 
-.client-card:hover { border-color: var(--green-dark); }
-.client-card.inactive { opacity: 0.6; border-style: dashed; }
+.client-card:hover {
+    box-shadow: var(--shadow-md);
+}
 
+.client-card.inactive {
+    opacity: 0.55;
+}
+
+.client-card.inactive .client-card-header {
+    background: var(--cream);
+}
+
+/* ── CLIENT CARD HEADER ── */
 .client-card-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 10px;
+    padding: 20px 24px;
+    background: var(--white);
+}
+
+.client-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
 }
 
 .client-card-name {
-    font-weight: 700;
     font-size: 15px;
+    font-weight: 700;
     color: var(--text-dark);
 }
 
 .client-card-email {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-muted);
-    margin-top: 2px;
 }
 
-.client-card-meta {
+.client-card-last-login {
+    font-size: 11px;
+    color: var(--text-light);
+    margin-top: 4px;
+}
+
+.client-card-status {
     display: flex;
+    flex-direction: column;
+    align-items: flex-end;
     gap: 6px;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
 }
 
+.client-card-joined {
+    font-size: 11px;
+    color: var(--text-light);
+}
+
+/* ── CLIENT CARD DIVIDER ── */
+.client-card-divider {
+    height: 1px;
+    background: var(--border-light);
+}
+
+/* ── CLIENT CARD ACTIONS ── */
 .client-card-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr 1px 1fr;
+    background: var(--cream);
+    min-height: 80px;
 }
 
+.action-group {
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+}
+
+.action-group-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--text-light);
+    text-transform: uppercase;
+}
+
+.action-separator {
+    background: var(--border);
+    width: 1px;
+    align-self: stretch;
+}
+
+/* ── RESET FORM ── */
 .reset-form {
     display: flex;
     gap: 6px;
@@ -923,17 +981,27 @@ tbody td {
 }
 
 .reset-input {
-    padding: 6px 10px;
+    padding: 7px 10px;
     font-size: 12px;
-    border: 1px solid var(--cream-darker);
+    border: 1.5px solid var(--cream-darker);
     border-radius: var(--radius-sm);
     background: var(--white);
     width: 130px;
     font-family: 'Inter', sans-serif;
     outline: none;
+    transition: border-color 0.2s;
 }
 
-.reset-input:focus { border-color: var(--green-dark); }
+.reset-input:focus {
+    border-color: var(--green-dark);
+}
+
+/* ── SMALL BUTTONS ── */
+.btn-sm {
+    padding: 6px 14px;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
 
 /* ════════════════════════════════════════════
    LOGIN PAGE
