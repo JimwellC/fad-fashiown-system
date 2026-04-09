@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+
+{% block topbar_right %}
+<span class="status-pill connected">{{ business_name }}</span>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── PERIOD STATS ── -->
+<div class="analytics-period-grid">
+
+    <div class="period-card today">
+        <div class="period-label">Today</div>
+        <div class="period-revenue">₱{{ "%.2f"|format(today_revenue) }}</div>
+        <div class="period-orders">{{ today_count }} order{{ 's' if today_count != 1 else '' }}</div>
+    </div>
+
+    <div class="period-card week">
+        <div class="period-label">This Week</div>
+        <div class="period-revenue">₱{{ "%.2f"|format(week_revenue) }}</div>
+        <div class="period-orders">{{ week_count }} order{{ 's' if week_count != 1 else '' }}</div>
+    </div>
+
+    <div class="period-card month">
+        <div class="period-label">This Month</div>
+        <div class="period-revenue">₱{{ "%.2f"|format(month_revenue) }}</div>
+        <div class="period-orders">{{ month_count }} order{{ 's' if month_count != 1 else '' }}</div>
+    </div>
+
+    <div class="period-card total">
+        <div class="period-label">All Time</div>
+        <div class="period-revenue">₱{{ "%.2f"|format(total_revenue) }}</div>
+        <div class="period-orders">{{ total_count }} order{{ 's' if total_count != 1 else '' }}</div>
+    </div>
+
+</div>
+
+<!-- ── SUMMARY CARDS ── -->
+<div class="stats-grid" style="margin-bottom:24px">
+    <div class="stat-card">
+        <div class="stat-label">Total Revenue</div>
+        <div class="stat-number">₱{{ "%.2f"|format(total_revenue) }}</div>
+        <div class="stat-sub">All time earnings</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Orders</div>
+        <div class="stat-number">{{ total_count }}</div>
+        <div class="stat-sub">All time transactions</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Average Order</div>
+        <div class="stat-number">₱{{ "%.2f"|format(avg_order) }}</div>
+        <div class="stat-sub">Per transaction</div>
+    </div>
+</div>
+
+<!-- ── CHARTS ROW ── -->
+<div class="charts-grid">
+
+    <!-- Daily Chart -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Daily Sales — Last 7 Days</span>
+        </div>
+        <div class="card-body">
+            <div class="chart-wrapper">
+                <canvas id="dailyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Chart -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Monthly Sales — Last 6 Months</span>
+        </div>
+        <div class="card-body">
+            <div class="chart-wrapper">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── RANKINGS ROW ── -->
+<div class="rankings-grid">
+
+    <!-- Top Buyers -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Top Buyers</span>
+            <span style="font-size:11px;color:var(--text-light)">
+                {{ buyers_total }} total — by order count
+            </span>
+        </div>
+        <div class="card-body" style="padding:0">
+            {% if top_buyers %}
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:40px">#</th>
+                        <th>Buyer</th>
+                        <th>Orders</th>
+                        <th>Total Spent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for buyer in top_buyers %}
+                    {% set global_rank = (buyers_page - 1) * 5 + loop.index %}
+                    <tr>
+                        <td class="td-id">{{ global_rank }}</td>
+                        <td class="td-buyer">@{{ buyer.username }}</td>
+                        <td>
+                            <span class="rank-bar-wrap">
+                                <span class="rank-bar"
+                                    style="width:{{ (buyer.orders / top_buyers_max * 100)|int }}%">
+                                </span>
+                                <span class="rank-count">{{ buyer.orders }}</span>
+                            </span>
+                        </td>
+                        <td class="td-price">₱{{ "%.2f"|format(buyer.total) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Buyers Pagination -->
+            {% if buyers_pages > 1 %}
+            <div class="ranking-pagination">
+                <div class="ranking-page-btns left">
+                    <a href="/analytics?buyers_page={{ buyers_page - 1 }}&items_page={{ items_page }}"
+                    class="ranking-page-btn {% if buyers_page == 1 %}disabled{% endif %}">
+                        ← Prev
+                    </a>
+                </div>
+                <span class="page-info">{{ buyers_page }} / {{ buyers_pages }}</span>
+                <div class="ranking-page-btns right">
+                    <a href="/analytics?buyers_page={{ buyers_page + 1 }}&items_page={{ items_page }}"
+                    class="ranking-page-btn {% if buyers_page == buyers_pages %}disabled{% endif %}">
+                        Next →
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="empty-state">No orders yet.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Top Items -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Top Items</span>
+            <span style="font-size:11px;color:var(--text-light)">
+                {{ items_total }} total — by order count
+            </span>
+        </div>
+        <div class="card-body" style="padding:0">
+            {% if top_items %}
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:40px">#</th>
+                        <th>Item</th>
+                        <th>Orders</th>
+                        <th>Total Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in top_items %}
+                    {% set global_rank = (items_page - 1) * 5 + loop.index %}
+                    <tr>
+                        <td class="td-id">{{ global_rank }}</td>
+                        <td class="td-item" style="font-weight:600">
+                            {{ item.name }}
+                        </td>
+                        <td>
+                            <span class="rank-bar-wrap">
+                                <span class="rank-bar"
+                                    style="width:{{ (item.orders / top_items_max * 100)|int }}%">
+                                </span>
+                                <span class="rank-count">{{ item.orders }}</span>
+                            </span>
+                        </td>
+                        <td class="td-price">₱{{ "%.2f"|format(item.total) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Items Pagination -->
+            {% if items_pages > 1 %}
+            <div class="ranking-pagination">
+                <div class="ranking-page-btns left">
+                    <a href="/analytics?buyers_page={{ buyers_page }}&items_page={{ items_page - 1 }}"
+                    class="ranking-page-btn {% if items_page == 1 %}disabled{% endif %}">
+                        ← Prev
+                    </a>
+                </div>
+                <span class="page-info">{{ items_page }} / {{ items_pages }}</span>
+                <div class="ranking-page-btns right">
+                    <a href="/analytics?buyers_page={{ buyers_page }}&items_page={{ items_page + 1 }}"
+                    class="ranking-page-btn {% if items_page == items_pages %}disabled{% endif %}">
+                        Next →
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="empty-state">No orders yet.</div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ── CHART DEFAULTS ──
+Chart.defaults.font.family = 'Inter, sans-serif';
+Chart.defaults.color = '#8A7E6E';
+
+const GREEN = '#2D5A1B';
+const GREEN_LIGHT = 'rgba(45,90,27,0.08)';
+const CREAM = '#F5F0E8';
+
+// ── DAILY CHART DATA ──
+const dailyData = {{ daily_data | tojson }};
+
+new Chart(document.getElementById('dailyChart'), {
+    type: 'bar',
+    data: {
+        labels: dailyData.map(d => d.label),
+        datasets: [
+            {
+                label: 'Revenue (₱)',
+                data: dailyData.map(d => d.revenue),
+                backgroundColor: GREEN,
+                borderRadius: 6,
+                borderSkipped: false,
+                yAxisID: 'y'
+            },
+            {
+                label: 'Orders',
+                data: dailyData.map(d => d.count),
+                type: 'line',
+                borderColor: '#A8D5A2',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                pointBackgroundColor: '#A8D5A2',
+                pointRadius: 4,
+                tension: 0.4,
+                yAxisID: 'y1'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    boxWidth: 12,
+                    padding: 16,
+                    font: { size: 11, weight: '600' }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(ctx) {
+                        if (ctx.dataset.label === 'Revenue (₱)') {
+                            return ' ₱' + ctx.raw.toFixed(2);
+                        }
+                        return ' ' + ctx.raw + ' orders';
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                border: { display: false }
+            },
+            y: {
+                position: 'left',
+                grid: { color: '#F0EBE0' },
+                border: { display: false },
+                ticks: {
+                    callback: v => '₱' + v.toLocaleString()
+                }
+            },
+            y1: {
+                position: 'right',
+                grid: { display: false },
+                border: { display: false },
+                ticks: {
+                    stepSize: 1,
+                    callback: v => Number.isInteger(v) ? v : ''
+                }
+            }
+        }
+    }
+});
+
+// ── MONTHLY CHART DATA ──
+const monthlyData = {{ monthly_data | tojson }};
+
+new Chart(document.getElementById('monthlyChart'), {
+    type: 'bar',
+    data: {
+        labels: monthlyData.map(d => d.label),
+        datasets: [
+            {
+                label: 'Revenue (₱)',
+                data: monthlyData.map(d => d.revenue),
+                backgroundColor: GREEN,
+                borderRadius: 6,
+                borderSkipped: false,
+                yAxisID: 'y'
+            },
+            {
+                label: 'Orders',
+                data: monthlyData.map(d => d.count),
+                type: 'line',
+                borderColor: '#A8D5A2',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                pointBackgroundColor: '#A8D5A2',
+                pointRadius: 4,
+                tension: 0.4,
+                yAxisID: 'y1'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    boxWidth: 12,
+                    padding: 16,
+                    font: { size: 11, weight: '600' }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(ctx) {
+                        if (ctx.dataset.label === 'Revenue (₱)') {
+                            return ' ₱' + ctx.raw.toFixed(2);
+                        }
+                        return ' ' + ctx.raw + ' orders';
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                border: { display: false }
+            },
+            y: {
+                position: 'left',
+                grid: { color: '#F0EBE0' },
+                border: { display: false },
+                ticks: {
+                    callback: v => '₱' + v.toLocaleString()
+                }
+            },
+            y1: {
+                position: 'right',
+                grid: { display: false },
+                border: { display: false },
+                ticks: {
+                    stepSize: 1,
+                    callback: v => Number.isInteger(v) ? v : ''
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

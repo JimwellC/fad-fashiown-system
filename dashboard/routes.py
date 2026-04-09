@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, make_response, redirect, 
 from flask_login import login_required, current_user
 from database import db
 from auth.models import Order
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 import io
 
@@ -115,3 +115,170 @@ def export_orders():
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = f'attachment; filename={filename}'
     return response
+
+
+@dashboard.route('/analytics')
+@login_required
+def analytics():
+    """Analytics page - sales insights"""
+    if current_user.is_admin:
+        return redirect(url_for('auth.admin_panel'))
+
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    week_start = now - timedelta(days=now.weekday())
+
+    all_orders = Order.query.filter_by(client_id=current_user.id).all()
+
+    # ── TODAY ──
+    today_orders = [o for o in all_orders if o.timestamp >= today_start]
+    today_count = len(today_orders)
+    today_revenue = sum(o.price for o in today_orders)
+
+    # ── THIS WEEK ──
+    week_orders = [o for o in all_orders if o.timestamp >= week_start]
+    week_count = len(week_orders)
+    week_revenue = sum(o.price for o in week_orders)
+
+    # ── THIS MONTH ──
+    month_orders = [o for o in all_orders if o.timestamp >= month_start]
+    month_count = len(month_orders)
+    month_revenue = sum(o.price for o in month_orders)
+
+    # ── ALL TIME ──
+    total_count = len(all_orders)
+    total_revenue = sum(o.price for o in all_orders)
+    avg_order = total_revenue / total_count if total_count > 0 else 0
+
+    # ── TOP BUYERS ──
+    buyer_counts = {}
+    buyer_totals = {}
+    for o in all_orders:
+        buyer_counts[o.buyer_username] = buyer_counts.get(o.buyer_username, 0) + 1
+        buyer_totals[o.buyer_username] = buyer_totals.get(o.buyer_username, 0) + o.price
+
+    all_top_buyers = sorted(
+        buyer_counts.items(),
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+    top_buyers_full = [
+        {
+            'username': username,
+            'orders': count,
+            'total': buyer_totals[username]
+        }
+        for username, count in all_top_buyers
+    ]
+
+    # Paginate buyers
+    buyers_page = request.args.get('buyers_page', 1, type=int)
+    buyers_per_page = 5
+    buyers_total = len(top_buyers_full)
+    buyers_pages = (buyers_total + buyers_per_page - 1) // buyers_per_page
+    buyers_start = (buyers_page - 1) * buyers_per_page
+    buyers_end = buyers_start + buyers_per_page
+    top_buyers_data = top_buyers_full[buyers_start:buyers_end]
+    top_buyers_max = top_buyers_full[0]['orders'] if top_buyers_full else 1
+
+    # ── TOP ITEMS ──
+    item_counts = {}
+    item_totals = {}
+    for o in all_orders:
+        item_counts[o.item_name] = item_counts.get(o.item_name, 0) + 1
+        item_totals[o.item_name] = item_totals.get(o.item_name, 0) + o.price
+
+    all_top_items = sorted(
+        item_counts.items(),
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+    top_items_full = [
+        {
+            'name': name,
+            'orders': count,
+            'total': item_totals[name]
+        }
+        for name, count in all_top_items
+    ]
+
+    # Paginate items
+    items_page = request.args.get('items_page', 1, type=int)
+    items_per_page = 5
+    items_total = len(top_items_full)
+    items_pages = (items_total + items_per_page - 1) // items_per_page
+    items_start = (items_page - 1) * items_per_page
+    items_end = items_start + items_per_page
+    top_items_data = top_items_full[items_start:items_end]
+    top_items_max = top_items_full[0]['orders'] if top_items_full else 1
+
+    # ── DAILY SALES (Last 7 days) ──
+    daily_data = []
+    for i in range(6, -1, -1):
+        day = now - timedelta(days=i)
+        day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day.replace(hour=23, minute=59, second=59, microsecond=999999)
+        day_orders = [
+            o for o in all_orders
+            if day_start <= o.timestamp <= day_end
+        ]
+        daily_data.append({
+            'label': day.strftime('%a'),
+            'date': day.strftime('%b %d'),
+            'count': len(day_orders),
+            'revenue': sum(o.price for o in day_orders)
+        })
+
+    # ── MONTHLY SALES (Last 6 months) ──
+    monthly_data = []
+    for i in range(5, -1, -1):
+        month_date = now - timedelta(days=i * 30)
+        m_start = month_date.replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        if i == 0:
+            m_end = now
+        else:
+            next_month = m_start.replace(month=m_start.month % 12 + 1) \
+                if m_start.month < 12 \
+                else m_start.replace(year=m_start.year + 1, month=1)
+            m_end = next_month - timedelta(seconds=1)
+
+        m_orders = [
+            o for o in all_orders
+            if m_start <= o.timestamp <= m_end
+        ]
+        monthly_data.append({
+            'label': month_date.strftime('%b'),
+            'count': len(m_orders),
+            'revenue': sum(o.price for o in m_orders)
+        })
+
+    return render_template(
+    'analytics.html',
+    today_count=today_count,
+    today_revenue=today_revenue,
+    week_count=week_count,
+    week_revenue=week_revenue,
+    month_count=month_count,
+    month_revenue=month_revenue,
+    total_count=total_count,
+    total_revenue=total_revenue,
+    avg_order=avg_order,
+    top_buyers=top_buyers_data,
+    top_buyers_max=top_buyers_max,
+    buyers_page=buyers_page,
+    buyers_pages=buyers_pages,
+    buyers_total=buyers_total,
+    top_items=top_items_data,
+    top_items_max=top_items_max,
+    items_page=items_page,
+    items_pages=items_pages,
+    items_total=items_total,
+    daily_data=daily_data,
+    monthly_data=monthly_data,
+    business_name=current_user.business_name
+)
