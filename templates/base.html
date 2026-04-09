@@ -10,6 +10,8 @@
 <body>
 
 <div class="app-layout">
+    <!-- Mobile sidebar overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
     <aside class="sidebar" id="sidebar">
 
@@ -92,7 +94,20 @@
 
     <main class="main-content">
         <div class="topbar">
-            <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+            <div style="display:flex;align-items:center;gap:14px">
+                <!-- Hamburger - only shows on mobile -->
+                <button class="menu-toggle" id="menu-toggle"
+                        onclick="toggleSidebar()"
+                        style="display:none">
+                    <svg width="20" height="20" fill="none" stroke="currentColor"
+                        stroke-width="2" viewBox="0 0 24 24">
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+            </div>
             <div class="topbar-right">
                 {% block topbar_right %}{% endblock %}
             </div>
@@ -239,6 +254,14 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeModal();
 });
+
+// ── SIDEBAR TOGGLE (Mobile) ──
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('active');
+}
 </script>
 
 {% block scripts %}{% endblock %}
