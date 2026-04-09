@@ -18,17 +18,30 @@
 
 
     // ── LOAD SETTINGS FROM SERVER ──
+    let previousMode = '';
+
     async function loadSettings() {
         try {
             const res = await fetch(`${SETTINGS_URL}?token=${CLIENT_TOKEN}`);
             if (res.ok) {
                 const data = await res.json();
-                detectionMode = data.detection_mode || 'keywords';
+                const newMode = data.detection_mode || 'keywords';
                 buyerKeywords = (data.custom_keywords || 'mine,ako,akin,ko,me,samin')
                     .split(',')
                     .map(k => k.trim().toLowerCase())
                     .filter(k => k.length > 0);
-                console.log(`Settings loaded: mode=${detectionMode}, keywords=${buyerKeywords.join(',')}`);
+
+                // If mode changed, reset seen comments so they get re-evaluated
+                if (previousMode && previousMode !== newMode) {
+                    console.log(`Mode changed: ${previousMode} → ${newMode}, resetting comments`);
+                    document.querySelectorAll('[data-fad-seen]').forEach(el => {
+                        delete el.dataset.fadSeen;
+                    });
+                }
+
+                previousMode = newMode;
+                detectionMode = newMode;
+                console.log(`Settings: mode=${detectionMode}`);
             }
         } catch(e) {
             console.log('Using default settings');
@@ -198,8 +211,8 @@
         console.log('Waiting for TikTok Live...');
 
         loadSettings().then(() => {
-    // Reload settings every 5 minutes automatically
-        setInterval(loadSettings, 5 * 60 * 1000);
+    // Reload settings every 30 seconds so changes apply quickly
+        setInterval(loadSettings, 30 * 1000);
 
             const check = setInterval(() => {
                 const isLive = window.location.href.includes('/live');
