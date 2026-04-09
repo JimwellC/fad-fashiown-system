@@ -30,4 +30,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.log('Pinned user detected:', message.username);
         sendResponse({ success: true });
     }
-});s
+});
