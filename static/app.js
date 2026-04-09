@@ -133,25 +133,25 @@ function printLabel() {
     const price = document.getElementById('price').value.trim();
 
     if (!currentBuyer) {
-        showToast('❌ No buyer selected yet!', 'error');
+        showToast('No buyer selected yet!', 'error');
         return;
     }
 
     if (!itemName) {
-        showToast('❌ Please enter item name', 'error');
+        showToast('Please enter item name', 'error');
         document.getElementById('item-name').focus();
         return;
     }
 
     if (!price || isNaN(price) || parseFloat(price) <= 0) {
-        showToast('❌ Please enter a valid price', 'error');
+        showToast('Please enter a valid price', 'error');
         document.getElementById('price').focus();
         return;
     }
 
     const printBtn = document.getElementById('print-btn');
     printBtn.disabled = true;
-    printBtn.textContent = '⏳ Printing...';
+    printBtn.textContent = 'Saving...';
 
     fetch('/api/print-label', {
         method: 'POST',
@@ -165,19 +165,49 @@ function printLabel() {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            showToast('✅ Label printed! Ready for next buyer.', 'success');
-            clearForm();
-            resetCommentHighlights();
+            // ── FILL LABEL DATA ──
+            document.getElementById('print-username').textContent = currentBuyer;
+            document.getElementById('print-item').textContent = itemName;
+            document.getElementById('print-price').textContent = '₱' + parseFloat(price).toFixed(2);
+
+            const now = new Date();
+            document.getElementById('print-date').textContent =
+                now.toLocaleDateString('en-PH', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            document.getElementById('print-order-id').textContent =
+                'Order #' + data.order.id;
+
+            // ── TRIGGER PRINT ──
+            console.log('Triggering print dialog...');
+            setTimeout(() => {
+                window.print();
+            }, 300);
+
+            // ── CLEANUP AFTER PRINT ──
+            setTimeout(() => {
+                clearForm();
+                resetCommentHighlights();
+                showToast('Order saved and label printed!', 'success');
+                printBtn.disabled = false;
+                printBtn.textContent = 'Print Label';
+            }, 1000);
+
         } else {
-            showToast('❌ Error: ' + data.error, 'error');
+            showToast('Error: ' + (data.error || 'Unknown error'), 'error');
+            printBtn.disabled = false;
+            printBtn.textContent = 'Print Label';
         }
     })
     .catch(err => {
-        showToast('❌ Connection error. Try again.', 'error');
-    })
-    .finally(() => {
+        console.error('Print error:', err);
+        showToast('Connection error. Try again.', 'error');
         printBtn.disabled = false;
-        printBtn.textContent = '🖨️ PRINT LABEL';
+        printBtn.textContent = 'Print Label';
     });
 }
 
