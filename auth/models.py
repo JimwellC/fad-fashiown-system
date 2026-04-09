@@ -18,6 +18,7 @@ class Client(UserMixin, db.Model):
     last_login = db.Column(db.DateTime, nullable=True)
 
     orders = db.relationship('Order', backref='client', lazy=True)
+    token = db.Column(db.String(64), unique=True, nullable=True)
 
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(
