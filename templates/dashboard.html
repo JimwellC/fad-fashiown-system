@@ -1,87 +1,84 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fad Fashiown - Live Selling</title>
-    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
+{% extends "base.html" %}
 
-    <!-- ── HEADER ── -->
-    <div class="header">
-        <h1>✦ Fad <span>Fashiown</span></h1>
-        <div class="status-bar">
-            <span id="connection-status" class="status-dot disconnected">
-                ⚪ Connecting...
-            </span>
-            <span id="detection-status" class="detection-badge off">
-                🔴 Extension OFF
-            </span>
-        </div>
-    </div>
+{% block title %}Dashboard{% endblock %}
 
-    <!-- ── MAIN CONTENT ── -->
-    <div class="main-container">
+{% block head %}
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+{% endblock %}
 
-        <!-- LEFT PANEL -->
-        <div class="left-panel">
+{% block page_title %}Live Selling Dashboard{% endblock %}
 
-            <!-- Current Buyer -->
-            <div class="card buyer-card" id="buyer-card">
-                <div class="card-label">
-                    📌 Current Buyer
-                </div>
+{% block topbar_right %}
+<span id="connection-status" class="status-pill disconnected">
+    ⚪ Connecting...
+</span>
+<span id="detection-status" class="status-pill extension-off">
+    🟡 Extension OFF
+</span>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+
+    <!-- ── LEFT PANEL ── -->
+    <div class="left-panel">
+
+        <!-- Current Buyer -->
+        <div class="card buyer-card" id="buyer-card">
+            <div class="card-body">
+                <div class="card-title">📌 Current Buyer</div>
                 <div class="buyer-username" id="buyer-username">
                     Waiting for buyer...
                 </div>
                 <div class="buyer-time" id="buyer-time"></div>
             </div>
+        </div>
 
-            <!-- Order Form -->
-            <div class="card form-card">
-                <div class="card-label">📝 Order Details</div>
+        <!-- Order Form -->
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-body">
+                <div class="card-title" style="margin-bottom:14px">📝 Order Details</div>
 
                 <div class="form-group">
-                    <label for="item-name">Item Name / Code</label>
+                    <label class="form-label">Item Name / Code</label>
                     <input
                         type="text"
                         id="item-name"
+                        class="form-input"
                         placeholder="e.g. Dress #12, Blouse #4"
                         autocomplete="off"
                     />
                 </div>
 
                 <div class="form-group">
-                    <label for="price">Price (₱)</label>
+                    <label class="form-label">Price (₱)</label>
                     <input
                         type="number"
                         id="price"
+                        class="form-input"
                         placeholder="e.g. 350"
                         min="0"
                         step="0.01"
                     />
                 </div>
 
-                <div class="button-group">
-                    <button class="btn btn-print" id="print-btn" onclick="printLabel()">
-                        🖨️ &nbsp; Print Label
-                    </button>
-                    <button class="btn btn-clear" onclick="clearForm()">
-                        Clear Form
-                    </button>
-                </div>
+                <button class="btn btn-print" id="print-btn" onclick="printLabel()">
+                    🖨️ &nbsp; Print Label
+                </button>
+                <button class="btn btn-clear" onclick="clearForm()">
+                    Clear Form
+                </button>
 
                 <!-- Manual Override -->
                 <div class="manual-section">
-                    <div class="card-label" style="margin-bottom:10px">
+                    <div class="card-title" style="margin-bottom:10px; margin-top:4px">
                         ✋ Manual Override
                     </div>
                     <div class="manual-row">
                         <input
                             type="text"
                             id="manual-username"
+                            class="form-input"
                             placeholder="Type username manually"
                             autocomplete="off"
                         />
@@ -91,56 +88,53 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
-        <!-- RIGHT PANEL -->
-        <div class="right-panel">
+    </div>
 
-            <!-- Live Comments -->
-            <div class="card comments-card">
-                <div class="card-label">
-                    💬 Live Comments
-                    <span id="comment-count"
-                        style="background:#2D5A1B;
-                               color:#F5F0E8;
-                               padding:2px 10px;
-                               border-radius:12px;
-                               font-size:11px;
-                               font-weight:700">
-                        0
-                    </span>
-                </div>
+    <!-- ── RIGHT PANEL ── -->
+    <div class="right-panel">
+
+        <!-- Live Comments -->
+        <div class="card comments-card" style="margin-bottom:16px">
+            <div class="card-header">
+                <span class="card-title">💬 Live Comments</span>
+                <span id="comment-count"
+                    style="background:var(--green-dark);color:var(--cream);
+                           padding:2px 10px;border-radius:12px;
+                           font-size:11px;font-weight:700">0</span>
+            </div>
+            <div class="card-body">
                 <div class="comments-hint">
-                    🟢 Green border = "mine" comment — click any to set as buyer
+                    🟢 Green = "mine" comment — click any to set as buyer
                 </div>
-                <div id="comments-list">
+                <div class="comments-list" id="comments-list">
                     <div class="empty-state">
                         Waiting for comments...<br>
                         <small>Make sure the extension is active on TikTok Live</small>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Recent Orders -->
-            <div class="card orders-card">
-                <div class="card-label">
-                    📦 Recent Orders
-                    <button class="btn-refresh" onclick="loadOrders()">↺ Refresh</button>
-                </div>
-                <div id="orders-list">
+        <!-- Recent Orders -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📦 Recent Orders</span>
+                <button class="btn-icon" onclick="loadOrders()">↺ Refresh</button>
+            </div>
+            <div class="card-body">
+                <div class="orders-list" id="orders-list">
                     <div class="empty-state">No orders yet</div>
                 </div>
             </div>
-
         </div>
 
     </div>
 
-    <!-- Toast -->
-    <div id="toast" class="toast hidden"></div>
+</div>
+{% endblock %}
 
-    <script src="/static/app.js"></script>
-
-</body>
-</html>
+{% block scripts %}
+<script src="/static/app.js"></script>
+{% endblock %}

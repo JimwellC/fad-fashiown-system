@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Fad Fashiown{% endblock %} - Live Selling System</title>
+    <link rel="stylesheet" href="/static/style.css">
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+<div class="app-layout">
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar" id="sidebar">
+
+        <!-- Brand -->
+        <div class="sidebar-brand">
+            <div class="brand-name">✦ Fad <em>Fashiown</em></div>
+            <div class="brand-sub">Live Selling System</div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="sidebar-nav">
+
+            {% if current_user.is_admin %}
+            <!-- Admin sees ONLY client management -->
+            <div class="nav-section-label">Admin</div>
+            <a href="/admin"
+            class="nav-item {% if request.endpoint == 'auth.admin_panel' %}active{% endif %}">
+                <span class="nav-icon">👥</span>
+                Client Management
+            </a>
+
+            {% else %}
+            <!-- Regular clients see dashboard and orders -->
+            <div class="nav-section-label">Main</div>
+            <a href="/"
+            class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                <span class="nav-icon">🏠</span>
+                Dashboard
+            </a>
+            <a href="/orders"
+            class="nav-item {% if request.endpoint == 'dashboard.orders' %}active{% endif %}">
+                <span class="nav-icon">📦</span>
+                Order History
+            </a>
+            {% endif %}
+
+        </nav>
+
+        <!-- Footer -->
+        <div class="sidebar-footer">
+            <div class="client-info">
+                <div class="client-avatar">
+                    {{ current_user.business_name[0].upper() }}
+                </div>
+                <div class="client-details">
+                    <div class="client-name">{{ current_user.business_name }}</div>
+                    <div class="client-plan">{% if current_user.is_admin %}System Administrator{% else %}Live Selling{% endif %}</div>
+                </div>
+            </div>
+            <a href="/logout" class="nav-item" style="color:rgba(245,240,232,0.5)">
+                <span class="nav-icon">🚪</span>
+                Sign Out
+            </a>
+        </div>
+
+    </aside>
+
+    <!-- ── MAIN CONTENT ── -->
+    <main class="main-content">
+
+        <!-- Top Bar -->
+        <div class="topbar">
+            <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+            <div class="topbar-right">
+                {% block topbar_right %}{% endblock %}
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="page-content">
+            {% block content %}{% endblock %}
+        </div>
+
+    </main>
+
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast hidden"></div>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

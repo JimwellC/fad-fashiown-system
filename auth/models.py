@@ -11,7 +11,7 @@ class Client(UserMixin, db.Model):
     business_name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    plan = db.Column(db.String(20), default='basic')
+    plan = db.Column(db.String(20), default='active')
     is_active = db.Column(db.Boolean, default=True)
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
