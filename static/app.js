@@ -282,11 +282,11 @@ function updateExtensionStatus(active) {
     const badge = document.getElementById('detection-status');
     if (!badge) return;
     if (active) {
-        badge.textContent = '🟢 Extension ON';
-        badge.className = 'detection-badge on';
+        badge.textContent = 'Extension Active';
+        badge.className = 'status-pill extension-on';
     } else {
-        badge.textContent = '🔴 Extension OFF';
-        badge.className = 'detection-badge off';
+        badge.textContent = 'Extension Inactive';
+        badge.className = 'status-pill extension-off';
     }
 }
 
@@ -295,11 +295,11 @@ function updateExtensionStatus(active) {
 function updateConnectionStatus(connected) {
     const el = document.getElementById('connection-status');
     if (connected) {
-        el.textContent = '🟢 Connected';
-        el.className = 'status-dot connected';
+        el.textContent = 'Connected';
+        el.className = 'status-pill connected';
     } else {
-        el.textContent = '🔴 Disconnected';
-        el.className = 'status-dot disconnected';
+        el.textContent = 'Disconnected';
+        el.className = 'status-pill disconnected';
     }
 }
 
@@ -308,9 +308,10 @@ function updateConnectionStatus(connected) {
 let toastTimeout;
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
+    // Remove common emojis from messages
+    message = message.replace(/[✅❌🛒🖨️⏳]/g, '').trim();
     toast.textContent = message;
     toast.className = 'toast ' + type;
-
     clearTimeout(toastTimeout);
     toastTimeout = setTimeout(() => {
         toast.className = 'toast hidden';

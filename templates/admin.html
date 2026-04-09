@@ -1,16 +1,14 @@
 {% extends "base.html" %}
 
 {% block title %}Admin Panel{% endblock %}
-
 {% block page_title %}Client Management{% endblock %}
 
 {% block topbar_right %}
-<span class="status-pill connected">👑 Administrator</span>
+<span class="status-pill connected">Administrator</span>
 {% endblock %}
 
 {% block content %}
 
-<!-- Flash Messages -->
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
@@ -28,26 +26,30 @@
     </div>
     <div class="stat-card">
         <div class="stat-label">Active</div>
-        <div class="stat-number">{{ clients|selectattr('is_active')|list|length }}</div>
+        <div class="stat-number">
+            {{ clients|selectattr('is_active')|list|length }}
+        </div>
         <div class="stat-sub">Currently active</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Inactive</div>
-        <div class="stat-number">{{ clients|rejectattr('is_active')|list|length }}</div>
+        <div class="stat-number">
+            {{ clients|rejectattr('is_active')|list|length }}
+        </div>
         <div class="stat-sub">Deactivated accounts</div>
     </div>
 </div>
 
 <div class="admin-grid">
 
-    <!-- Create Client Form -->
+    <!-- Create Client -->
     <div>
         <div class="card">
             <div class="card-header">
-                <span class="card-title">➕ Create New Client</span>
+                <span class="card-title">Create New Client</span>
             </div>
             <div class="card-body">
-                <form method="POST" action="/admin/create-client">
+                <form method="POST" action="/admin/create-client" id="create-client-form">
                     <div class="form-group">
                         <label class="form-label">Business Name</label>
                         <input type="text" name="business_name"
@@ -64,11 +66,15 @@
                         <label class="form-label">Initial Password</label>
                         <input type="text" name="password"
                                class="form-input"
-                               placeholder="Min. 6 characters"
+                               placeholder="Minimum 8 characters"
                                required minlength="6" />
                     </div>
-                    <button type="submit" class="btn btn-primary" style="width:100%">
-                        Create Account →
+                    <input type="hidden" name="plan" value="active" />
+                    <button type="button"
+                            onclick="handleCreateAccount()"
+                            class="btn btn-primary"
+                            style="width:100%;margin-top:4px">
+                        Create Account
                     </button>
                 </form>
             </div>
@@ -79,14 +85,12 @@
     <div>
         <div class="card">
             <div class="card-header">
-                <span class="card-title">👥 All Clients ({{ clients|length }})</span>
+                <span class="card-title">All Clients ({{ clients|length }})</span>
             </div>
             <div class="card-body">
-
                 {% if clients %}
                     {% for client in clients %}
                     <div class="client-card {{ '' if client.is_active else 'inactive' }}">
-
                         <div class="client-card-header">
                             <div>
                                 <div class="client-card-name">
@@ -96,66 +100,178 @@
                                     {{ client.email }}
                                 </div>
                             </div>
-                            <div style="font-size:11px;color:var(--text-light)">
-                                Joined {{ client.created_at.strftime('%b %d, %Y') }}
+                            <div style="text-align:right">
+                                <span class="badge {{ 'badge-active' if client.is_active else 'badge-inactive' }}">
+                                    {{ 'Active' if client.is_active else 'Inactive' }}
+                                </span>
+                                <div style="font-size:11px;color:var(--text-light);margin-top:4px">
+                                    Joined {{ client.created_at.strftime('%b %d, %Y') }}
+                                </div>
                             </div>
                         </div>
 
-                        <div class="client-card-meta">
-                            <span class="badge {{ 'badge-active' if client.is_active else 'badge-inactive' }}">
-                                {{ '✅ Active' if client.is_active else '⛔ Inactive' }}
-                            </span>
-                            {% if client.last_login %}
-                            <span class="badge badge-plan">
-                                Last: {{ client.last_login.strftime('%b %d') }}
-                            </span>
-                            {% endif %}
+                        {% if client.last_login %}
+                        <div style="font-size:11px;color:var(--text-light);
+                                    margin-bottom:12px">
+                            Last login: {{ client.last_login.strftime('%b %d, %Y at %I:%M %p') }}
                         </div>
+                        {% endif %}
 
                         <div class="client-card-actions">
-                            <form method="POST"
-                                  action="/admin/toggle-client/{{ client.id }}">
-                                <button type="submit"
-                                    class="btn {{ 'btn-danger' if client.is_active else 'btn-success' }}"
-                                    style="padding:6px 12px;font-size:11px">
-                                    {{ '⛔ Deactivate' if client.is_active else '✅ Activate' }}
-                                </button>
+                            <button
+                                data-client-id="{{ client.id }}"
+                                data-client-name="{{ client.business_name }}"
+                                data-is-active="{{ '1' if client.is_active else '0' }}"
+                                onclick="handleToggleClient(this)"
+                                class="btn {{ 'btn-danger' if client.is_active else 'btn-success' }}"
+                                style="padding:6px 14px;font-size:11px">
+                                    {{ 'Deactivate' if client.is_active else 'Activate' }}
+                            </button>
+                            <form id="toggle-form-{{ client.id }}"
+                                method="POST"
+                                action="/admin/toggle-client/{{ client.id }}"
+                                style="display:none">
                             </form>
 
-                            <form method="POST"
-                                  action="/admin/reset-password/{{ client.id }}"
-                                  class="reset-form">
-                                <input type="text" name="new_password"
-                                       class="reset-input"
-                                       placeholder="New password"
-                                       minlength="6" required />
-                                <button type="submit" class="btn btn-warning"
-                                        style="padding:6px 12px;font-size:11px">
-                                    🔑 Reset
+                            <div class="reset-form">
+                                <input type="text"
+                                    id="reset-input-{{ client.id }}"
+                                    class="reset-input"
+                                    placeholder="New password" />
+                                <button onclick="handleResetPassword('{{ client.id }}', '{{ client.business_name }}')"
+                                        class="btn btn-warning"
+                                        style="padding:6px 14px;font-size:11px">
+                                    Reset Password
                                 </button>
+                            </div>
+                            <form id="reset-form-{{ client.id }}"
+                                method="POST"
+                                action="/admin/reset-password/{{ client.id }}"
+                                style="display:none">
+                                <input type="hidden"
+                                    id="reset-hidden-{{ client.id }}"
+                                    name="new_password" />
                             </form>
 
-                            <form method="POST"
-                                  action="/admin/delete-client/{{ client.id }}"
-                                  onsubmit="return confirm('Delete {{ client.business_name }}?')">
-                                <button type="submit" class="btn btn-danger"
-                                        style="padding:6px 12px;font-size:11px">
-                                    🗑️ Delete
-                                </button>
+                            <button onclick="Modal.confirm({
+                                title: 'Delete Client Account',
+                                message: 'You are about to permanently delete the account for:',
+                                detail: '{{ client.business_name }}',
+                                warning: 'This action cannot be undone. All data associated with this account will be permanently removed.',
+                                confirmText: 'Delete Account',
+                                confirmClass: 'btn-danger',
+                                onConfirm: function() {
+                                    document.getElementById('delete-form-{{ client.id }}').submit();
+                                }
+                            })"
+                            class="btn btn-danger"
+                            style="padding:6px 14px;font-size:11px">
+                                Delete
+                            </button>
+                            <form id="delete-form-{{ client.id }}"
+                                method="POST"
+                                action="/admin/delete-client/{{ client.id }}"
+                                style="display:none">
                             </form>
                         </div>
-
                     </div>
                     {% endfor %}
                 {% else %}
                     <div class="empty-state">
-                        No clients yet.<br>Create your first client above.
+                        No clients yet. Create your first client above.
                     </div>
                 {% endif %}
-
             </div>
         </div>
     </div>
 
 </div>
+
+{% block scripts %}
+<script>
+function handleResetPassword(clientId, clientName) {
+    const input = document.getElementById('reset-input-' + clientId);
+    const password = input.value.trim();
+
+    const errors = [];
+
+    // ── PASSWORD VALIDATION ──
+    if (!password) {
+        errors.push('Password is required.');
+    } else {
+        if (password.length < 8)
+            errors.push('Password must be at least 8 characters.');
+        if (password.length > 64)
+            errors.push('Password must be no longer than 64 characters.');
+        if (!/[a-z]/.test(password))
+            errors.push('Must contain at least one lowercase letter.');
+        if (!/[A-Z]/.test(password))
+            errors.push('Must contain at least one uppercase letter.');
+        if (!/[0-9]/.test(password))
+            errors.push('Must contain at least one number.');
+        if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password))
+            errors.push('Must contain at least one special character (!@#$%^&*).');
+    }
+
+    // ── SHOW ERRORS ──
+    if (errors.length > 0) {
+        const errorList = errors.map((e, i) => `${i + 1}. ${e}`).join('\n');
+        Modal.alert({
+            title: 'Invalid Password',
+            message: errorList,
+            confirmText: 'OK'
+        });
+        return;
+    }
+
+    // ── CONFIRM RESET ──
+    Modal.confirm({
+        title: 'Reset Password',
+        message: 'You are about to reset the password for:',
+        detail: clientName,
+        warning: 'The client will need to use the new password on their next login. Make sure to inform them.',
+        confirmText: 'Reset Password',
+        confirmClass: 'btn-warning',
+        onConfirm: function() {
+            // Copy password to hidden form and submit
+            document.getElementById('reset-hidden-' + clientId).value = password;
+            document.getElementById('reset-form-' + clientId).submit();
+        }
+    });
+}
+
+function handleToggleClient(btn) {
+    const clientId = btn.dataset.clientId;
+    const clientName = btn.dataset.clientName;
+    const isActive = btn.dataset.isActive === '1';
+
+    if (isActive) {
+        Modal.confirm({
+            title: 'Deactivate Client Account',
+            message: 'You are about to deactivate the account for:',
+            detail: clientName,
+            warning: 'The client will no longer be able to log in until reactivated. Their data will remain intact.',
+            confirmText: 'Deactivate Account',
+            confirmClass: 'btn-danger',
+            onConfirm: function() {
+                document.getElementById('toggle-form-' + clientId).submit();
+            }
+        });
+    } else {
+        Modal.confirm({
+            title: 'Activate Client Account',
+            message: 'You are about to reactivate the account for:',
+            detail: clientName,
+            warning: 'The client will be able to log in immediately after activation.',
+            confirmText: 'Activate Account',
+            confirmClass: 'btn-success',
+            onConfirm: function() {
+                document.getElementById('toggle-form-' + clientId).submit();
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
+
 {% endblock %}

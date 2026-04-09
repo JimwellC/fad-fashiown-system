@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 
 {% block title %}Dashboard{% endblock %}
-
 {% block head %}
 <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
 {% endblock %}
@@ -9,24 +8,20 @@
 {% block page_title %}Live Selling Dashboard{% endblock %}
 
 {% block topbar_right %}
-<span id="connection-status" class="status-pill disconnected">
-    ⚪ Connecting...
-</span>
-<span id="detection-status" class="status-pill extension-off">
-    🟡 Extension OFF
-</span>
+<span id="connection-status" class="status-pill disconnected">Connecting...</span>
+<span id="detection-status" class="status-pill extension-off">Extension Inactive</span>
 {% endblock %}
 
 {% block content %}
 <div class="dashboard-grid">
 
-    <!-- ── LEFT PANEL ── -->
+    <!-- LEFT PANEL -->
     <div class="left-panel">
 
         <!-- Current Buyer -->
-        <div class="card buyer-card" id="buyer-card">
+        <div class="card buyer-card" id="buyer-card" style="margin-bottom:16px">
             <div class="card-body">
-                <div class="card-title">📌 Current Buyer</div>
+                <div class="section-label">Current Buyer</div>
                 <div class="buyer-username" id="buyer-username">
                     Waiting for buyer...
                 </div>
@@ -37,7 +32,7 @@
         <!-- Order Form -->
         <div class="card" style="margin-bottom:16px">
             <div class="card-body">
-                <div class="card-title" style="margin-bottom:14px">📝 Order Details</div>
+                <div class="section-label" style="margin-bottom:16px">Order Details</div>
 
                 <div class="form-group">
                     <label class="form-label">Item Name / Code</label>
@@ -56,34 +51,33 @@
                         type="number"
                         id="price"
                         class="form-input"
-                        placeholder="e.g. 350"
+                        placeholder="0.00"
                         min="0"
                         step="0.01"
                     />
                 </div>
 
                 <button class="btn btn-print" id="print-btn" onclick="printLabel()">
-                    🖨️ &nbsp; Print Label
+                    Print Label
                 </button>
                 <button class="btn btn-clear" onclick="clearForm()">
                     Clear Form
                 </button>
 
-                <!-- Manual Override -->
                 <div class="manual-section">
-                    <div class="card-title" style="margin-bottom:10px; margin-top:4px">
-                        ✋ Manual Override
+                    <div class="section-label" style="margin-bottom:10px">
+                        Manual Override
                     </div>
                     <div class="manual-row">
                         <input
                             type="text"
                             id="manual-username"
                             class="form-input"
-                            placeholder="Type username manually"
+                            placeholder="Enter username manually"
                             autocomplete="off"
                         />
                         <button class="btn btn-manual" onclick="setManualBuyer()">
-                            SET
+                            Set
                         </button>
                     </div>
                 </div>
@@ -92,21 +86,18 @@
 
     </div>
 
-    <!-- ── RIGHT PANEL ── -->
+    <!-- RIGHT PANEL -->
     <div class="right-panel">
 
         <!-- Live Comments -->
-        <div class="card comments-card" style="margin-bottom:16px">
+        <div class="card" style="margin-bottom:16px">
             <div class="card-header">
-                <span class="card-title">💬 Live Comments</span>
-                <span id="comment-count"
-                    style="background:var(--green-dark);color:var(--cream);
-                           padding:2px 10px;border-radius:12px;
-                           font-size:11px;font-weight:700">0</span>
+                <span class="card-title">Live Comments</span>
+                <span id="comment-count" class="count-badge">0</span>
             </div>
             <div class="card-body">
                 <div class="comments-hint">
-                    🟢 Green = "mine" comment — click any to set as buyer
+                    Comments highlighted in green contain "mine" — click to set as buyer
                 </div>
                 <div class="comments-list" id="comments-list">
                     <div class="empty-state">
@@ -120,8 +111,8 @@
         <!-- Recent Orders -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title">📦 Recent Orders</span>
-                <button class="btn-icon" onclick="loadOrders()">↺ Refresh</button>
+                <span class="card-title">Recent Orders</span>
+                <button class="btn-icon" onclick="loadOrders()">Refresh</button>
             </div>
             <div class="card-body">
                 <div class="orders-list" id="orders-list">

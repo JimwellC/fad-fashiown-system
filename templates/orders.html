@@ -1,13 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}Order History{% endblock %}
-
 {% block page_title %}Order History{% endblock %}
 
 {% block topbar_right %}
-<a href="/orders/export" class="btn btn-export">
-    📥 Export CSV
-</a>
+<a href="/orders/export" class="btn btn-export">Export CSV</a>
 {% endblock %}
 
 {% block content %}
@@ -39,13 +36,9 @@
         <div class="filters-row">
             <div class="form-group" style="margin:0">
                 <label class="form-label">Search</label>
-                <input
-                    type="text"
-                    name="search"
-                    class="form-input"
-                    value="{{ search }}"
-                    placeholder="Search by username or item..."
-                />
+                <input type="text" name="search" class="form-input"
+                       value="{{ search }}"
+                       placeholder="Search by username or item..." />
             </div>
             <div class="form-group" style="margin:0">
                 <label class="form-label">From Date</label>
@@ -59,11 +52,11 @@
             </div>
             <div class="form-group" style="margin:0">
                 <label class="form-label">&nbsp;</label>
-                <button type="submit" class="btn btn-primary">🔍 Search</button>
+                <button type="submit" class="btn btn-primary">Search</button>
             </div>
             <div class="form-group" style="margin:0">
                 <label class="form-label">&nbsp;</label>
-                <a href="/orders" class="btn btn-secondary">✕ Clear</a>
+                <a href="/orders" class="btn btn-secondary">Clear</a>
             </div>
         </div>
     </form>
@@ -72,14 +65,14 @@
 <!-- Table -->
 <div class="table-card">
     <div class="table-header">
-        <span class="card-title">📦 Orders ({{ orders.total }} found)</span>
+        <span class="card-title">Orders ({{ orders.total }} found)</span>
     </div>
 
     {% if orders.items %}
     <table>
         <thead>
             <tr>
-                <th>#</th>
+                <th>Order #</th>
                 <th>Buyer</th>
                 <th>Item</th>
                 <th>Price</th>
@@ -95,12 +88,12 @@
                 <td class="td-item">{{ order.item_name }}</td>
                 <td class="td-price">₱{{ "%.2f"|format(order.price) }}</td>
                 <td class="td-time">
-                    {{ order.timestamp.strftime('%b %d, %Y') }}<br>
-                    <small>{{ order.timestamp.strftime('%I:%M %p') }}</small>
+                    {{ order.timestamp.strftime('%b %d, %Y') }}
+                    <span style="color:var(--text-light);display:block;font-size:11px">
+                        {{ order.timestamp.strftime('%I:%M %p') }}
+                    </span>
                 </td>
-                <td>
-                    <span class="badge badge-success">✅ Printed</span>
-                </td>
+                <td><span class="badge badge-success">Printed</span></td>
             </tr>
             {% endfor %}
         </tbody>
@@ -110,27 +103,27 @@
     <div class="pagination">
         {% if orders.has_prev %}
         <a href="/orders?page={{ orders.prev_num }}&search={{ search }}&date_from={{ date_from }}&date_to={{ date_to }}"
-           class="page-btn">← Prev</a>
+           class="page-btn">Previous</a>
         {% endif %}
         <span class="page-info">Page {{ orders.page }} of {{ orders.pages }}</span>
         {% if orders.has_next %}
         <a href="/orders?page={{ orders.next_num }}&search={{ search }}&date_from={{ date_from }}&date_to={{ date_to }}"
-           class="page-btn">Next →</a>
+           class="page-btn">Next</a>
         {% endif %}
     </div>
     {% endif %}
 
     {% else %}
     <div class="empty-state" style="padding:60px">
-        <div style="font-size:48px;margin-bottom:16px">📦</div>
-        <h3 style="font-family:'Playfair Display',serif;font-size:20px;
-                   color:#5A5045;margin-bottom:8px">No orders found</h3>
+        <p style="font-size:16px;color:var(--text-medium);margin-bottom:8px">
+            No orders found
+        </p>
         <p>
             {% if search or date_from or date_to %}
-                No orders match your search.
-                <a href="/orders" style="color:#2D5A1B">Clear filters</a>
+                No orders match your search criteria.
+                <a href="/orders" style="color:var(--green-dark)">Clear filters</a>
             {% else %}
-                Orders will appear here after your first live session.
+                Orders will appear here after your first live selling session.
             {% endif %}
         </p>
     </div>

@@ -11,45 +11,59 @@
 
 <div class="app-layout">
 
-    <!-- ── SIDEBAR ── -->
     <aside class="sidebar" id="sidebar">
 
-        <!-- Brand -->
         <div class="sidebar-brand">
-            <div class="brand-name">✦ Fad <em>Fashiown</em></div>
+            <div class="brand-name">FAD <em>FASHIOWN</em></div>
             <div class="brand-sub">Live Selling System</div>
         </div>
 
-        <!-- Navigation -->
         <nav class="sidebar-nav">
-
             {% if current_user.is_admin %}
-            <!-- Admin sees ONLY client management -->
-            <div class="nav-section-label">Admin</div>
+            <div class="nav-section-label">Management</div>
             <a href="/admin"
-            class="nav-item {% if request.endpoint == 'auth.admin_panel' %}active{% endif %}">
-                <span class="nav-icon">👥</span>
+               class="nav-item {% if request.endpoint == 'auth.admin_panel' %}active{% endif %}">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </span>
                 Client Management
             </a>
 
             {% else %}
-            <!-- Regular clients see dashboard and orders -->
             <div class="nav-section-label">Main</div>
             <a href="/"
-            class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
-                <span class="nav-icon">🏠</span>
+               class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                    </svg>
+                </span>
                 Dashboard
             </a>
             <a href="/orders"
-            class="nav-item {% if request.endpoint == 'dashboard.orders' %}active{% endif %}">
-                <span class="nav-icon">📦</span>
+               class="nav-item {% if request.endpoint == 'dashboard.orders' %}active{% endif %}">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                </span>
                 Order History
             </a>
             {% endif %}
-
         </nav>
 
-        <!-- Footer -->
         <div class="sidebar-footer">
             <div class="client-info">
                 <div class="client-avatar">
@@ -57,39 +71,175 @@
                 </div>
                 <div class="client-details">
                     <div class="client-name">{{ current_user.business_name }}</div>
-                    <div class="client-plan">{% if current_user.is_admin %}System Administrator{% else %}Live Selling{% endif %}</div>
+                    <div class="client-plan">
+                        {% if current_user.is_admin %}System Administrator{% else %}Live Selling{% endif %}
+                    </div>
                 </div>
             </div>
-            <a href="/logout" class="nav-item" style="color:rgba(245,240,232,0.5)">
-                <span class="nav-icon">🚪</span>
+            <a href="/logout" class="nav-item nav-signout">
+                <span class="nav-icon">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                </span>
                 Sign Out
             </a>
         </div>
 
     </aside>
 
-    <!-- ── MAIN CONTENT ── -->
     <main class="main-content">
-
-        <!-- Top Bar -->
         <div class="topbar">
             <div class="topbar-title">{% block page_title %}{% endblock %}</div>
             <div class="topbar-right">
                 {% block topbar_right %}{% endblock %}
             </div>
         </div>
-
-        <!-- Page Content -->
         <div class="page-content">
             {% block content %}{% endblock %}
         </div>
-
     </main>
 
 </div>
 
-<!-- Toast -->
+<!-- ── TOAST ── -->
 <div id="toast" class="toast hidden"></div>
+
+<!-- ── GLOBAL MODAL ── -->
+<div class="modal-overlay" id="modal-overlay" style="display:none">
+    <div class="modal" id="modal-box">
+        <div class="modal-header">
+            <div class="modal-title" id="modal-title">Confirm Action</div>
+            <button class="modal-close" onclick="closeModal()">&#215;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-message" id="modal-message"></p>
+            <div class="modal-detail" id="modal-detail" style="display:none"></div>
+            <div class="modal-warning" id="modal-warning" style="display:none"></div>
+        </div>
+        <div class="modal-footer">
+            <button id="modal-cancel" onclick="closeModal()" class="btn btn-secondary">
+                Cancel
+            </button>
+            <button id="modal-confirm" class="btn btn-primary">
+                Confirm
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── GLOBAL MODAL SCRIPT ── -->
+<script>
+const Modal = {
+
+    confirm: function(options) {
+        const {
+            title = 'Confirm Action',
+            message = 'Are you sure?',
+            detail = null,
+            warning = null,
+            confirmText = 'Confirm',
+            cancelText = 'Cancel',
+            confirmClass = 'btn-primary',
+            onConfirm = null,
+            onCancel = null
+        } = options;
+
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-message').textContent = message;
+
+        const detailEl = document.getElementById('modal-detail');
+        if (detail) {
+            detailEl.textContent = detail;
+            detailEl.style.display = 'block';
+        } else {
+            detailEl.style.display = 'none';
+        }
+
+        const warningEl = document.getElementById('modal-warning');
+        if (warning) {
+            warningEl.textContent = warning;
+            warningEl.style.display = 'block';
+        } else {
+            warningEl.style.display = 'none';
+        }
+
+        const cancelBtn = document.getElementById('modal-cancel');
+        const confirmBtn = document.getElementById('modal-confirm');
+
+        cancelBtn.style.display = 'inline-flex';
+        cancelBtn.textContent = cancelText;
+        confirmBtn.textContent = confirmText;
+        confirmBtn.className = 'btn ' + confirmClass;
+
+        confirmBtn.onclick = function() {
+            closeModal();
+            if (onConfirm) onConfirm();
+        };
+
+        cancelBtn.onclick = function() {
+            closeModal();
+            if (onCancel) onCancel();
+        };
+
+        document.getElementById('modal-overlay').style.display = 'flex';
+    },
+
+    alert: function(options) {
+        const {
+            title = 'Notice',
+            message = '',
+            detail = null,
+            confirmText = 'OK',
+            confirmClass = 'btn-primary',
+            onConfirm = null
+        } = options;
+
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-message').textContent = message;
+
+        const detailEl = document.getElementById('modal-detail');
+        if (detail) {
+            detailEl.textContent = detail;
+            detailEl.style.display = 'block';
+        } else {
+            detailEl.style.display = 'none';
+        }
+
+        document.getElementById('modal-warning').style.display = 'none';
+        document.getElementById('modal-cancel').style.display = 'none';
+
+        const confirmBtn = document.getElementById('modal-confirm');
+        confirmBtn.textContent = confirmText;
+        confirmBtn.className = 'btn ' + confirmClass;
+        confirmBtn.onclick = function() {
+            closeModal();
+            if (onConfirm) onConfirm();
+        };
+
+        document.getElementById('modal-overlay').style.display = 'flex';
+    }
+};
+
+function closeModal() {
+    document.getElementById('modal-overlay').style.display = 'none';
+    document.getElementById('modal-cancel').style.display = 'inline-flex';
+}
+
+// Close on outside click
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('modal-overlay').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+});
+
+// Close on Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+});
+</script>
 
 {% block scripts %}{% endblock %}
 
