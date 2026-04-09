@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div style="max-width:680px">
+
+    <form method="POST" action="/settings">
+        <!-- Detection Mode -->
+        <div class="card" style="margin-bottom:20px">
+            <div class="card-header">
+                <span class="card-title">Comment Detection Mode</span>
+            </div>
+            <div class="card-body">
+
+                <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">
+                    Choose how the system identifies buyer comments from your live chat.
+                </p>
+
+                <!-- Mode Options -->
+                <div class="settings-mode-grid">
+
+                    <label class="mode-option {% if client.detection_mode == 'keywords' or not client.detection_mode %}selected{% endif %}">
+                        <input type="radio" name="detection_mode" value="keywords"
+                               {% if client.detection_mode == 'keywords' or not client.detection_mode %}checked{% endif %}>
+                        <div class="mode-icon">
+                            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="mode-label">Keywords Only</div>
+                        <div class="mode-desc">
+                            Highlights comments containing words like "mine", "ako", "me", etc.
+                        </div>
+                        <div class="mode-example">
+                            Example: "mine!", "ako na", "me po"
+                        </div>
+                    </label>
+
+                    <label class="mode-option {% if client.detection_mode == 'numbers' %}selected{% endif %}">
+                        <input type="radio" name="detection_mode" value="numbers"
+                               {% if client.detection_mode == 'numbers' %}checked{% endif %}>
+                        <div class="mode-icon">
+                            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <line x1="4" y1="9" x2="20" y2="9"/>
+                                <line x1="4" y1="15" x2="20" y2="15"/>
+                                <line x1="10" y1="3" x2="8" y2="21"/>
+                                <line x1="16" y1="3" x2="14" y2="21"/>
+                            </svg>
+                        </div>
+                        <div class="mode-label">Number Codes Only</div>
+                        <div class="mode-desc">
+                            Highlights comments that are number codes for your items.
+                        </div>
+                        <div class="mode-example">
+                            Example: "81", "202", "90"
+                        </div>
+                    </label>
+
+                    <label class="mode-option {% if client.detection_mode == 'both' %}selected{% endif %}">
+                        <input type="radio" name="detection_mode" value="both"
+                               {% if client.detection_mode == 'both' %}checked{% endif %}>
+                        <div class="mode-icon">
+                            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                        </div>
+                        <div class="mode-label">Both</div>
+                        <div class="mode-desc">
+                            Highlights both keyword comments and number code comments.
+                        </div>
+                        <div class="mode-example">
+                            Example: "mine", "81", "ako na 90"
+                        </div>
+                    </label>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Custom Keywords -->
+        <div class="card" style="margin-bottom:20px">
+            <div class="card-header">
+                <span class="card-title">Custom Keywords</span>
+            </div>
+            <div class="card-body">
+                <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+                    Comma-separated list of words that identify a buyer comment.
+                    Used when mode is set to Keywords or Both.
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Keywords</label>
+                    <input type="text"
+                           name="custom_keywords"
+                           class="form-input"
+                           value="{{ client.custom_keywords or 'mine,ako,akin,ko,me,samin' }}"
+                           placeholder="mine,ako,akin,ko,me,samin,want,gusto" />
+                    <div style="font-size:11px;color:var(--text-light);margin-top:6px">
+                        Separate each keyword with a comma. Not case sensitive.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Button -->
+        <button type="submit" class="btn btn-primary" style="width:100%;padding:14px">
+            Save Settings
+        </button>
+
+    </form>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Highlight selected mode option
+document.querySelectorAll('input[name="detection_mode"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        document.querySelectorAll('.mode-option').forEach(opt => {
+            opt.classList.remove('selected');
+        });
+        this.closest('.mode-option').classList.add('selected');
+    });
+});
+</script>
+{% endblock %}

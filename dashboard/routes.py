@@ -1,5 +1,5 @@
 # dashboard/routes.py
-from flask import Blueprint, render_template, request, make_response, redirect, url_for
+from flask import Blueprint, render_template, request, make_response, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from database import db
 from auth.models import Order
@@ -282,3 +282,51 @@ def analytics():
     monthly_data=monthly_data,
     business_name=current_user.business_name
 )
+
+@dashboard.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    """Client settings page"""
+    if current_user.is_admin:
+        return redirect(url_for('auth.admin_panel'))
+
+    if request.method == 'POST':
+        detection_mode = request.form.get('detection_mode', 'keywords')
+        custom_keywords = request.form.get('custom_keywords', '').strip()
+        highlight_numbers = request.form.get('highlight_numbers') == 'on'
+
+        current_user.detection_mode = detection_mode
+        current_user.custom_keywords = custom_keywords
+        current_user.highlight_numbers = highlight_numbers
+        db.session.commit()
+
+        flash('Settings saved!', 'success')
+        return redirect(url_for('dashboard.settings'))
+
+    return render_template(
+        'settings.html',
+        client=current_user,
+        business_name=current_user.business_name
+    )
+
+
+@dashboard.route('/api/client-settings', methods=['GET'])
+def client_settings():
+    """Return settings as JSON - accepts token for Chrome extension"""
+    from auth.models import Client
+
+    token = request.args.get('token', '')
+    if token:
+        client = Client.query.filter_by(token=token).first()
+        if not client:
+            return jsonify({'error': 'Invalid token'}), 401
+    elif current_user.is_authenticated:
+        client = current_user
+    else:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    return jsonify({
+        'detection_mode': client.detection_mode or 'keywords',
+        'custom_keywords': client.custom_keywords or 'mine,ako,akin,ko,me,samin',
+        'highlight_numbers': client.highlight_numbers or False
+    })

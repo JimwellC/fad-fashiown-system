@@ -20,6 +20,11 @@ class Client(UserMixin, db.Model):
     orders = db.relationship('Order', backref='client', lazy=True)
     token = db.Column(db.String(64), unique=True, nullable=True)
 
+    # Detection settings
+    detection_mode = db.Column(db.String(20), default='keywords')
+    custom_keywords = db.Column(db.Text, default='mine')
+    highlight_numbers = db.Column(db.Boolean, default=False)
+
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(
             password

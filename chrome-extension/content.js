@@ -9,13 +9,66 @@
     console.log('Fad Fashiown - Comment Monitor loaded');
 
     const BACKEND_URL = 'https://web-production-1fba.up.railway.app/api/new-comment';
+    const SETTINGS_URL = 'https://web-production-1fba.up.railway.app/api/client-settings';
     const CLIENT_TOKEN = 'ed707688f74dffedd4fd14d11c2f7427c547d3f085aba2dcacfb47ec1c3d360e';
 
-    // Buyer keywords in Filipino and English
-    const BUYER_KEYWORDS = [
-        'mine', 'ako', 'akin', 'ko', 'me',
-        'samin', 'ours', 'want', 'gusto', 'bili'
-    ];
+    // ── DETECTION SETTINGS (loaded from server) ──
+    let detectionMode = 'keywords';
+    let buyerKeywords = ['mine','ako','akin','ko','me','samin','ours','want','gusto','bili'];
+
+
+    // ── LOAD SETTINGS FROM SERVER ──
+    async function loadSettings() {
+        try {
+            const res = await fetch(`${SETTINGS_URL}?token=${CLIENT_TOKEN}`);
+            if (res.ok) {
+                const data = await res.json();
+                detectionMode = data.detection_mode || 'keywords';
+                buyerKeywords = (data.custom_keywords || 'mine,ako,akin,ko,me,samin')
+                    .split(',')
+                    .map(k => k.trim().toLowerCase())
+                    .filter(k => k.length > 0);
+                console.log(`Settings loaded: mode=${detectionMode}, keywords=${buyerKeywords.join(',')}`);
+            }
+        } catch(e) {
+            console.log('Using default settings');
+        }
+    }
+
+
+    // ── CHECK IF COMMENT IS A BUYER ──
+    function checkIsBuyer(message) {
+        const msgLower = message.toLowerCase().trim();
+
+        // Keywords mode
+        if (detectionMode === 'keywords') {
+            return buyerKeywords.some(k =>
+                msgLower === k ||
+                msgLower.startsWith(k + ' ') ||
+                msgLower.endsWith(' ' + k) ||
+                msgLower.includes(' ' + k + ' ')
+            );
+        }
+
+        // Numbers mode - comment is purely a number or number code
+        if (detectionMode === 'numbers') {
+            return /^\d+$/.test(msgLower.trim());
+        }
+
+        // Both mode
+        if (detectionMode === 'both') {
+            const hasKeyword = buyerKeywords.some(k =>
+                msgLower === k ||
+                msgLower.startsWith(k + ' ') ||
+                msgLower.endsWith(' ' + k) ||
+                msgLower.includes(' ' + k + ' ')
+            );
+            const isNumber = /^\d+$/.test(msgLower.trim());
+            return hasKeyword || isNumber;
+        }
+
+        return false;
+    }
 
 
     // ── SCAN ALL VISIBLE COMMENTS ──
@@ -31,11 +84,7 @@
             if (!username) return;
             if (!message || message.length === 0) return;
 
-            const msgLower = message.toLowerCase().trim();
-            const isBuyer = BUYER_KEYWORDS.some(k =>
-                msgLower === k || msgLower.startsWith(k + ' ')
-            );
-
+            const isBuyer = checkIsBuyer(message);
             sendComment(username, message, isBuyer);
         });
     }
@@ -102,9 +151,7 @@
                 token: CLIENT_TOKEN
             })
         }).then(res => {
-            if (!res.ok) {
-                console.error('Server error:', res.status);
-            }
+            if (!res.ok) console.error('Server error:', res.status);
         }).catch(err => console.error('Send error:', err));
     }
 
@@ -120,7 +167,6 @@
         }
 
         console.log('Chat found! Watching for comments...');
-
         scanComments();
 
         const observer = new MutationObserver((mutations) => {
@@ -145,16 +191,19 @@
     function waitForLivePage() {
         console.log('Waiting for TikTok Live...');
 
-        const check = setInterval(() => {
-            const isLive = window.location.href.includes('/live');
-            const chatContainer = document.querySelector('[data-e2e="live-chat-container"]');
+        // Load settings first then start watching
+        loadSettings().then(() => {
+            const check = setInterval(() => {
+                const isLive = window.location.href.includes('/live');
+                const chatContainer = document.querySelector('[data-e2e="live-chat-container"]');
 
-            if (isLive && chatContainer) {
-                clearInterval(check);
-                console.log('TikTok Live detected!');
-                startChatObserver();
-            }
-        }, 1000);
+                if (isLive && chatContainer) {
+                    clearInterval(check);
+                    console.log('TikTok Live detected!');
+                    startChatObserver();
+                }
+            }, 1000);
+        });
     }
 
 
