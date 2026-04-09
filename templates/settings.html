@@ -89,30 +89,6 @@
             </div>
         </div>
 
-        <!-- Custom Keywords -->
-        <div class="card" style="margin-bottom:20px">
-            <div class="card-header">
-                <span class="card-title">Custom Keywords</span>
-            </div>
-            <div class="card-body">
-                <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
-                    Comma-separated list of words that identify a buyer comment.
-                    Used when mode is set to Keywords or Both.
-                </p>
-                <div class="form-group">
-                    <label class="form-label">Keywords</label>
-                    <input type="text"
-                           name="custom_keywords"
-                           class="form-input"
-                           value="{{ client.custom_keywords or 'mine,ako,akin,ko,me,samin' }}"
-                           placeholder="mine,ako,akin,ko,me,samin,want,gusto" />
-                    <div style="font-size:11px;color:var(--text-light);margin-top:6px">
-                        Separate each keyword with a comma. Not case sensitive.
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Save Button -->
         <button type="submit" class="btn btn-primary" style="width:100%;padding:14px">
             Save Settings
