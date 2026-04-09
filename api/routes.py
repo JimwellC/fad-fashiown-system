@@ -1,9 +1,6 @@
 # api/routes.py
-# API endpoints - all protected by login
-
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, make_response
 from flask_login import login_required, current_user
-from flask_socketio import emit
 from datetime import datetime
 from database import db
 from auth.models import Order
@@ -11,10 +8,7 @@ import json
 
 api = Blueprint('api', __name__)
 
-# Store socketio reference (set in app.py)
 socketio_ref = None
-
-# Current buyer per client session
 current_buyers = {}
 
 
@@ -37,6 +31,69 @@ def set_current_buyer(client_id, username):
     }
 
 
+# ── PUBLIC ENDPOINT - No login required ──
+@api.route('/api/new-comment', methods=['POST', 'OPTIONS'])
+def new_comment():
+    """Receive comments from Chrome extension - public, uses token auth"""
+
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
+
+    try:
+        data = request.get_json(force=True, silent=True)
+        if not data:
+            raw = request.get_data(as_text=True)
+            data = json.loads(raw)
+    except Exception:
+        response = make_response(jsonify({"error": "Invalid data"}), 400)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+    username = data.get('username', '').strip()
+    message = data.get('message', '').strip()
+    is_buyer = data.get('is_buyer', False)
+    token = data.get('token', '').strip()
+
+    if not username:
+        response = make_response(jsonify({"error": "No username"}), 400)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+    # Find client by token
+    from auth.models import Client
+    client = Client.query.filter_by(token=token).first()
+
+    if not client:
+        print(f"❌ Invalid token: {token[:10]}...")
+        # Return ok anyway to avoid extension errors
+        response = make_response(jsonify({"error": "Invalid token"}), 401)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+    client_id = client.id
+    print(f"💬 @{username}: '{message}' → {client.business_name}")
+
+    if socketio_ref:
+        socketio_ref.emit('new_comment', {
+            "username": username,
+            "message": message,
+            "is_buyer": is_buyer
+        }, room=f"client_{client_id}")
+
+    if is_buyer:
+        set_current_buyer(client_id, username)
+
+    response = make_response(jsonify({"success": True}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
+# ── PROTECTED ENDPOINTS - Login required ──
 @api.route('/api/set-buyer', methods=['POST'])
 @login_required
 def set_buyer():
@@ -50,9 +107,8 @@ def set_buyer():
     client_id = current_user.id
     set_current_buyer(client_id, username)
 
-    print(f"✅ Buyer set: {username} (Client: {current_user.business_name})")
+    print(f"Buyer set: {username} (Client: {current_user.business_name})")
 
-    # Notify this client's dashboard
     if socketio_ref:
         socketio_ref.emit('buyer_detected', {
             "username": username,
@@ -60,53 +116,6 @@ def set_buyer():
         }, room=f"client_{client_id}")
 
     return jsonify({"success": True, "username": username})
-
-
-@api.route('/api/new-comment', methods=['POST', 'OPTIONS'])
-@login_required
-def new_comment():
-    """Receive comments from Chrome extension"""
-    if request.method == 'OPTIONS':
-        response = jsonify({'success': True})
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Headers'] = '*'
-        return response
-
-    try:
-        if request.content_type and 'application/json' in request.content_type:
-            data = request.get_json()
-        else:
-            data = json.loads(request.get_data(as_text=True))
-    except Exception as e:
-        return jsonify({"error": "Invalid data"}), 400
-
-    if not data:
-        return jsonify({"error": "No data"}), 400
-
-    username = data.get('username', '').strip()
-    message = data.get('message', '').strip()
-    is_buyer = data.get('is_buyer', False)
-
-    if not username:
-        return jsonify({"error": "No username"}), 400
-
-    client_id = current_user.id
-
-    print(f"💬 Comment: @{username}: '{message}' "
-          f"(Client: {current_user.business_name})")
-
-    # Push to this client's dashboard only
-    if socketio_ref:
-        socketio_ref.emit('new_comment', {
-            "username": username,
-            "message": message,
-            "is_buyer": is_buyer
-        }, room=f"client_{client_id}")
-
-    if is_buyer:
-        set_current_buyer(client_id, username)
-
-    return jsonify({"success": True})
 
 
 @api.route('/api/print-label', methods=['POST'])
@@ -131,7 +140,6 @@ def print_label():
     except ValueError:
         return jsonify({"error": "Invalid price"}), 400
 
-    # Save order linked to this client
     order = Order(
         client_id=current_user.id,
         buyer_username=username,
@@ -142,15 +150,13 @@ def print_label():
     db.session.add(order)
     db.session.commit()
 
-    print(f"🖨️  Order saved: {username} | {item_name} | "
-          f"₱{price} (Client: {current_user.business_name})")
+    print(f"Order saved: {username} | {item_name} | ₱{price}")
 
     order_dict = order.to_dict()
 
-    # Notify this client's dashboard
     if socketio_ref:
         socketio_ref.emit('order_saved', order_dict,
-                         room=f"client_{current_user.id}")
+                          room=f"client_{current_user.id}")
 
     return jsonify({"success": True, "order": order_dict})
 
