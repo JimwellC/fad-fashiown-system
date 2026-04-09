@@ -85,9 +85,6 @@ def new_comment():
             "is_buyer": is_buyer
         }, room=f"client_{client_id}")
 
-    if is_buyer:
-        set_current_buyer(client_id, username)
-
     response = make_response(jsonify({"success": True}))
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response

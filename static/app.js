@@ -35,15 +35,10 @@ socket.on('order_saved', function (order) {
 });
 
 // ── NEW COMMENT EVENT ──
-// Fires every time someone comments on TikTok Live
 socket.on('new_comment', function (data) {
     addComment(data);
-    updateExtensionStatus(true); // Mark extension as active
-
-    if (data.is_buyer) {
-        setBuyer(data.username, new Date().toLocaleTimeString());
-        showToast('🛒 Buyer: @' + data.username, 'success');
-    }
+    updateExtensionStatus(true);
+    // NO auto-set buyer - seller must click manually
 });
 
 
@@ -96,7 +91,7 @@ function addComment(data) {
         <div class="comment-username">@${data.username}</div>
         <div class="comment-message">${data.message}</div>
         <div class="comment-click-hint">
-            ${data.is_buyer ? '🛒 Click to confirm as buyer' : '👆 Click to select as buyer'}
+            Click to select as buyer
         </div>
     `;
 

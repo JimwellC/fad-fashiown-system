@@ -39,11 +39,12 @@
     // ── CHECK IF MESSAGE IS A NUMBER CODE ──
     function isNumberCode(msg) {
         const trimmed = msg.trim();
-        return /^\d+$/.test(trimmed) ||       // pure number: 2, 81, 720
-            /^[lL]\d+$/.test(trimmed) ||   // L + number: L2, L23, L549
-            /^\d+[lL]$/.test(trimmed);     // number + L: 2L
+        return /^\d+$/.test(trimmed) ||                    // pure number: 2, 81, 720
+            /^[lL]\d+$/.test(trimmed) ||                // L + number: L2, L23, L549
+            /^\d+[lL]$/.test(trimmed) ||                // number + L: 2L
+            /^lock\s*\d+$/i.test(trimmed) ||            // LOCK 11, lock11
+            /^l\s*\d+$/i.test(trimmed);                 // L 11, l 11
     }
-
 
     // ── CHECK IF COMMENT IS A BUYER ──
     function checkIsBuyer(message) {
