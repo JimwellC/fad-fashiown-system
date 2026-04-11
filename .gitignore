@@ -5,4 +5,4 @@ __pycache__/
 *.pyo
 .DS_Store
 .vscode/
-config_local.py
+config_local.pycerts/private-key.pem

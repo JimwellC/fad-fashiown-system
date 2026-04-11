@@ -1,44 +1,77 @@
+// ── QZ TRAY SECURITY ──
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof qz !== 'undefined') {
+        qz.security.setCertificatePromise(function(resolve, reject) {
+            resolve('-----BEGIN CERTIFICATE-----\n' +
+'MIIDVTCCAj2gAwIBAgIUGdmAH44RoQlouQFsWWzd0/a2b60wDQYJKoZIhvcNAQEL\n' +
+'BQAwOjEVMBMGA1UEAwwMRmFkIEZhc2hpb3duMRQwEgYDVQQKDAtGYWRGYXNoaW93\n' +
+'bjELMAkGA1UEBhMCUEgwHhcNMjYwNDExMTcwNTIzWhcNMzYwNDA4MTcwNTIzWjA6\n' +
+'MRUwEwYDVQQDDAxGYWQgRmFzaGlvd24xFDASBgNVBAoMC0ZhZEZhc2hpb3duMQsw\n' +
+'CQYDVQQGEwJQSDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMtsC6on\n' +
+'KROQkrRN9DEKC0r1EsYgKuj2Ya8QlNAx9tzZS0Dd8h40tOeQ9Ya6K2ah/Mq9UiBU\n' +
+'41srkVm6Qse22KYf/X2K+b5CEvZaFJkczROd4EPUPaxRgX1J9POA/qEVKalEp/Xw\n' +
+'doCd/ILu+0TRT4Ql9W+ZocbVvO8YeXWKkPJ1BbvX3OoSer34JmBZnRngP2QiTkVP\n' +
+'ias7giwFu4k/Eqk2/igntmv3D4lDMjPfQ3RmYJyu/QWRQUS0BCC1qwm9LLUZfYKf\n' +
+'OPRDFhA9klx75lvnR0aK2AHKuNjHfs0jh+sGbEuFzIdwmh6kTAeskZZ0PRFcPskF\n' +
+'FZOjBdulUuvl0UECAwEAAaNTMFEwHQYDVR0OBBYEFDtIOIV23Rno3oo+hvW+YZOp\n' +
+'bLm6MB8GA1UdIwQYMBaAFDtIOIV23Rno3oo+hvW+YZOpbLm6MA8GA1UdEwEB/wQF\n' +
+'MAMBAf8wDQYJKoZIhvcNAQELBQADggEBAEup2fLxQefw9ZqgdvSocSOLKPwwpMvA\n' +
+'pZ5IMEk1ZkCpBXB7XLUJtfaQtvvoViLNo8EpBQHvWsNEyPfF1g9Hc1L6QFblQyeg\n' +
+'E6X8n5fa4eD6/E3UU1wlRbttj/YM+BvJU2LAdYbwB4l/7XHnO4qMwjccnTrJimx0\n' +
+'GyzyLdkL+lAdJnk0VXIrOGELlmjzFVqDmIo67xv47j16ZCqeqDiD6NXgd9tOkIrX\n' +
+'1FA6QHzShRnFJ68iFjnKGN1lIHYcBk61gGNZEHSJOeEVbyEGZ/UTSUg1lHdLIpgy\n' +
+'eXmZpCoOOgzScnljc8lbO3J7rmF1iev7w1Y6847KNnqw7UQ0OleJLfg=\n' +
+'-----END CERTIFICATE-----');
+        });
+
+        qz.security.setSignatureAlgorithm('SHA512');
+        qz.security.setSignaturePromise(function(toSign) {
+            return function(resolve, reject) {
+                fetch('/api/qz-sign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ request: toSign })
+                })
+                .then(res => res.json())
+                .then(data => resolve(data.signature))
+                .catch(() => resolve(''));
+            };
+        });
+    }
+});
+
 // app.js - Fad Fashiown Dashboard Logic
-// Handles real-time updates, form submission, order display, and live comments
-
-// ── WEBSOCKET CONNECTION ──
 const socket = io();
-
-// Current buyer username (kept in memory)
 let currentBuyer = '';
 let commentCount = 0;
 
 // ── CONNECTION EVENTS ──
 socket.on('connect', function () {
-    console.log('✅ Connected to server');
+    console.log('Connected to server');
     updateConnectionStatus(true);
-    updateExtensionStatus(false); // Default off until comment received
+    updateExtensionStatus(false);
     loadOrders();
 });
 
 socket.on('disconnect', function () {
-    console.log('❌ Disconnected from server');
+    console.log('Disconnected from server');
     updateConnectionStatus(false);
 });
 
-// ── BUYER DETECTED EVENT ──
 socket.on('buyer_detected', function (data) {
     if (data.username && data.username.trim() !== '') {
         setBuyer(data.username, data.detected_at);
     }
 });
 
-// ── ORDER SAVED EVENT ──
 socket.on('order_saved', function (order) {
     prependOrder(order);
-    showToast('✅ Order saved!', 'success');
+    showToast('Order saved!', 'success');
 });
 
-// ── NEW COMMENT EVENT ──
 socket.on('new_comment', function (data) {
     addComment(data);
     updateExtensionStatus(true);
-    // NO auto-set buyer - seller must click manually
 });
 
 
@@ -52,14 +85,11 @@ function setBuyer(username, detectedAt) {
 
     usernameEl.textContent = '@' + username;
     timeEl.textContent = detectedAt ? 'Detected at ' + detectedAt : '';
-
-    // Flash green to signal new buyer
     card.classList.add('active');
 
-    // Auto-focus item name field for fast typing
-    document.getElementById('item-name').focus();
-
-    console.log('👤 Buyer set:', username);
+    // Auto-focus price field for fast typing
+    document.getElementById('price').focus();
+    console.log('Buyer set:', username);
 }
 
 
@@ -68,36 +98,28 @@ function addComment(data) {
     const list = document.getElementById('comments-list');
     if (!list) return;
 
-    // Remove empty state
     const empty = list.querySelector('.empty-state');
     if (empty) empty.remove();
 
-    // Keep only last 50 comments for performance
     const existing = list.querySelectorAll('.comment-item');
     if (existing.length >= 50) {
         existing[existing.length - 1].remove();
     }
 
-    // Update comment counter
     commentCount++;
     const countEl = document.getElementById('comment-count');
     if (countEl) countEl.textContent = commentCount;
 
-    // Create comment element
     const div = document.createElement('div');
     div.className = 'comment-item' + (data.is_buyer ? ' buyer' : '');
 
     div.innerHTML = `
         <div class="comment-username">@${data.username}</div>
         <div class="comment-message">${data.message}</div>
-        <div class="comment-click-hint">
-            Click to select as buyer
-        </div>
+        <div class="comment-click-hint">Click to select as buyer</div>
     `;
 
-    // Click to manually set as buyer
     div.addEventListener('click', function () {
-        // Set as buyer
         fetch('/api/set-buyer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -106,40 +128,110 @@ function addComment(data) {
         .then(res => res.json())
         .then(result => {
             if (result.success) {
-                showToast('✅ Buyer set: @' + data.username, 'success');
-
-                // Dim all comments, highlight selected
+                showToast('Buyer set: @' + data.username, 'success');
                 document.querySelectorAll('.comment-item').forEach(el => {
                     el.style.opacity = '0.4';
                 });
                 div.style.opacity = '1';
                 div.classList.add('selected');
-
-                // Focus item name for fast entry
-                document.getElementById('item-name').focus();
+                // Focus price for fast entry
+                document.getElementById('price').focus();
             }
         })
-        .catch(err => showToast('❌ Error setting buyer', 'error'));
+        .catch(err => showToast('Error setting buyer', 'error'));
     });
 
-    // Add to TOP of list (newest first)
     list.insertBefore(div, list.firstChild);
+}
+
+
+// ── QZ TRAY CONNECTION (persistent) ──
+let qzConnected = false;
+
+async function ensureQZConnected() {
+    if (qzConnected && qz.websocket.isActive()) return true;
+    try {
+        await qz.websocket.connect();
+        qzConnected = true;
+        console.log('QZ Tray connected!');
+        return true;
+    } catch (err) {
+        console.error('QZ Tray connect error:', err);
+        qzConnected = false;
+        return false;
+    }
+}
+
+setInterval(async () => {
+    if (qzConnected && !qz.websocket.isActive()) {
+        qzConnected = false;
+        await ensureQZConnected();
+    }
+}, 10000);
+
+document.addEventListener('DOMContentLoaded', async function() {
+    if (typeof qz !== 'undefined') {
+        setTimeout(async () => {
+            await ensureQZConnected();
+        }, 1000);
+    }
+});
+
+
+// ── SILENT PRINT (QZ Tray → fallback browser) ──
+async function silentPrint() {
+    // Use browser print for now (switch to QZ ESC/POS when thermal arrives)
+    browserPrint();
+}
+
+
+// ── BROWSER PRINT FALLBACK ──
+function browserPrint() {
+    const labelEl = document.getElementById('print-label');
+    const labelHTML = labelEl.innerHTML;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: Arial, sans-serif; padding: 4mm; }
+                .print-label-box { width: 52mm; padding: 6mm 8mm; border: 1.5px solid #000; text-align: center; }
+                .print-brand { font-size: 13pt; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; }
+                .print-sub { font-size: 8pt; letter-spacing: 3px; text-transform: uppercase; color: #444; margin-bottom: 4px; }
+                .print-divider { border: none; border-top: 1px dashed #666; margin: 5px 0; }
+                .print-buyer-label { font-size: 7pt; letter-spacing: 3px; text-transform: uppercase; color: #666; }
+                .print-buyer { font-size: 15pt; font-weight: 900; word-break: break-all; line-height: 1.2; margin-bottom: 4px; }
+                .print-row { display: flex; justify-content: space-between; margin: 3px 0; }
+                .print-field-label { font-size: 7pt; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #666; min-width: 36px; }
+                .print-field-value { font-size: 12pt; font-weight: 900; }
+                .print-meta { font-size: 7pt; color: #666; margin-top: 2px; text-align: center; }
+                @page { size: 58mm auto; margin: 0; }
+            </style>
+        </head>
+        <body>${labelHTML}</body>
+        </html>
+    `);
+    doc.close();
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(() => document.body.removeChild(iframe), 3000);
 }
 
 
 // ── PRINT LABEL ──
 function printLabel() {
-    const itemName = document.getElementById('item-name').value.trim();
     const price = document.getElementById('price').value.trim();
 
     if (!currentBuyer) {
         showToast('No buyer selected yet!', 'error');
-        return;
-    }
-
-    if (!itemName) {
-        showToast('Please enter item name', 'error');
-        document.getElementById('item-name').focus();
         return;
     }
 
@@ -158,37 +250,28 @@ function printLabel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             username: currentBuyer,
-            item_name: itemName,
+            item_name: '-',
             price: parseFloat(price)
         })
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            // ── FILL LABEL DATA ──
+            // Fill label
             document.getElementById('print-username').textContent = currentBuyer;
-            document.getElementById('print-item').textContent = itemName;
             document.getElementById('print-price').textContent = '₱' + parseFloat(price).toFixed(2);
 
             const now = new Date();
             document.getElementById('print-date').textContent =
                 now.toLocaleDateString('en-PH', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
+                    month: 'short', day: 'numeric', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
                 });
             document.getElementById('print-order-id').textContent =
                 'Order #' + data.order.id;
 
-            // ── TRIGGER PRINT ──
-            console.log('Triggering print dialog...');
-            setTimeout(() => {
-                window.print();
-            }, 300);
+            setTimeout(() => silentPrint(), 300);
 
-            // ── CLEANUP AFTER PRINT ──
             setTimeout(() => {
                 clearForm();
                 resetCommentHighlights();
@@ -204,7 +287,6 @@ function printLabel() {
         }
     })
     .catch(err => {
-        console.error('Print error:', err);
         showToast('Connection error. Try again.', 'error');
         printBtn.disabled = false;
         printBtn.textContent = 'Print Label';
@@ -223,9 +305,8 @@ function resetCommentHighlights() {
 
 // ── CLEAR FORM ──
 function clearForm() {
-    document.getElementById('item-name').value = '';
     document.getElementById('price').value = '';
-    document.getElementById('item-name').focus();
+    document.getElementById('price').focus();
 }
 
 
@@ -235,7 +316,7 @@ function setManualBuyer() {
     const username = input.value.trim();
 
     if (!username) {
-        showToast('❌ Please enter a username', 'error');
+        showToast('Please enter a username', 'error');
         return;
     }
 
@@ -248,10 +329,10 @@ function setManualBuyer() {
     .then(data => {
         if (data.success) {
             input.value = '';
-            showToast('✅ Buyer set: @' + username, 'success');
+            showToast('Buyer set: @' + username, 'success');
         }
     })
-    .catch(err => showToast('❌ Error setting buyer', 'error'));
+    .catch(err => showToast('Error setting buyer', 'error'));
 }
 
 
@@ -290,7 +371,6 @@ function prependOrder(order, animate = true) {
     div.innerHTML = `
         <div>
             <div class="order-username">@${order.username}</div>
-            <div class="order-item-name">${order.item_name}</div>
             <div class="order-id">#${order.id}</div>
         </div>
         <div>
@@ -301,6 +381,7 @@ function prependOrder(order, animate = true) {
 
     list.insertBefore(div, list.firstChild);
 }
+
 
 // ── EXTENSION STATUS ──
 function updateExtensionStatus(active) {
@@ -333,7 +414,6 @@ function updateConnectionStatus(connected) {
 let toastTimeout;
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
-    // Remove common emojis from messages
     message = message.replace(/[✅❌🛒🖨️⏳]/g, '').trim();
     toast.textContent = message;
     toast.className = 'toast ' + type;
@@ -346,13 +426,6 @@ function showToast(message, type = 'success') {
 
 // ── KEYBOARD SHORTCUTS ──
 document.addEventListener('DOMContentLoaded', function () {
-    // Enter in item name → jump to price
-    document.getElementById('item-name').addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-            document.getElementById('price').focus();
-        }
-    });
-
     // Enter in price → print label
     document.getElementById('price').addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {

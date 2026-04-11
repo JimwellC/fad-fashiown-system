@@ -1589,7 +1589,8 @@ tbody td {
     }
 
     .print-label-box {
-        width: 52mm;
+        width: 100mm;
+        margin: 0 auto;
         padding: 6mm 8mm;
         font-family: 'Arial', sans-serif;
         border: 1.5px solid #000;
@@ -1669,8 +1670,8 @@ tbody td {
     }
 
     @page {
-        size: 58mm 120mm;
-        margin: 0;
+        size: A4 portrait;
+        margin: 10mm;
     }
 }
 

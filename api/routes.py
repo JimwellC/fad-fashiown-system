@@ -180,3 +180,39 @@ def get_current_buyer_route():
     """Get current buyer for this client"""
     buyer = get_current_buyer(current_user.id)
     return jsonify(buyer)
+
+
+@api.route('/api/qz-sign', methods=['POST'])
+def qz_sign():
+    """Sign QZ Tray requests with private key"""
+    import base64
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding
+    import os
+
+    try:
+        data = request.get_json()
+        to_sign = data.get('request', '')
+
+        # Read private key
+        key_path = os.path.join(
+            os.path.abspath(os.path.dirname(__file__)),
+            '..', 'certs', 'private-key.pem'
+        )
+
+        with open(key_path, 'rb') as f:
+            private_key = serialization.load_pem_private_key(f.read(), password=None)
+
+        # Sign the request
+        signature = private_key.sign(
+            to_sign.encode('utf-8'),
+            padding.PKCS1v15(),
+            hashes.SHA512()
+        )
+
+        encoded = base64.b64encode(signature).decode('utf-8')
+        return jsonify({'signature': encoded})
+
+    except Exception as e:
+        print(f'QZ Sign error: {e}')
+        return jsonify({'signature': ''})
