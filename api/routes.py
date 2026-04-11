@@ -216,3 +216,38 @@ def qz_sign():
     except Exception as e:
         print(f'QZ Sign error: {e}')
         return jsonify({'signature': ''})
+
+
+@api.route('/api/orders/<int:order_id>', methods=['DELETE'])
+@login_required
+def delete_order(order_id):
+    """Delete a specific order - client can only delete their own"""
+    order = Order.query.filter_by(
+        id=order_id,
+        client_id=current_user.id
+    ).first()
+
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+
+    db.session.delete(order)
+    db.session.commit()
+
+    print(f"🗑️ Order #{order_id} deleted by {current_user.business_name}")
+    return jsonify({"success": True})
+
+
+@api.route('/api/order-stats', methods=['GET'])
+@login_required
+def order_stats():
+    """Get current order stats for this client"""
+    orders = Order.query.filter_by(client_id=current_user.id).all()
+    total_orders = len(orders)
+    total_sales = sum(o.price for o in orders)
+    avg_order = total_sales / total_orders if total_orders > 0 else 0
+
+    return jsonify({
+        'total_orders': total_orders,
+        'total_sales': total_sales,
+        'avg_order': avg_order
+    })
