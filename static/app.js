@@ -45,12 +45,22 @@ const socket = io();
 let currentBuyer = '';
 let commentCount = 0;
 
+// Label settings (loaded from server)
+let labelSettings = {
+    title: 'FAD FASHIOWN',
+    tagline: 'Live Selling',
+    template: 'classic',
+    showOrderId: true,
+    showDatetime: true
+};
+
 // ── CONNECTION EVENTS ──
 socket.on('connect', function () {
     console.log('Connected to server');
     updateConnectionStatus(true);
     updateExtensionStatus(false);
     loadOrders();
+    loadLabelSettings();
 });
 
 socket.on('disconnect', function () {
@@ -73,6 +83,26 @@ socket.on('new_comment', function (data) {
     addComment(data);
     updateExtensionStatus(true);
 });
+
+// ── LOAD LABEL SETTINGS ──
+async function loadLabelSettings() {
+    try {
+        const res = await fetch('/api/client-settings');
+        if (res.ok) {
+            const data = await res.json();
+            labelSettings = {
+                title: data.label_title || 'FAD FASHIOWN',
+                tagline: data.label_tagline || 'Live Selling',
+                template: data.label_template || 'classic',
+                showOrderId: data.label_show_order_id !== false,
+                showDatetime: data.label_show_datetime !== false
+            };
+            console.log('Label settings loaded:', labelSettings.template);
+        }
+    } catch(e) {
+        console.log('Using default label settings');
+    }
+}
 
 
 // ── SET BUYER DISPLAY ──
@@ -185,10 +215,76 @@ async function silentPrint() {
 }
 
 
-// ── BROWSER PRINT FALLBACK ──
+// ── BROWSER PRINT ──
 function browserPrint() {
-    const labelEl = document.getElementById('print-label');
-    const labelHTML = labelEl.innerHTML;
+    const username = document.getElementById('print-username').textContent;
+    const price = document.getElementById('print-price').textContent;
+    const date = document.getElementById('print-date').textContent;
+    const orderId = document.getElementById('print-order-id').textContent;
+
+    const title = labelSettings.title || 'FAD FASHIOWN';
+    const tagline = labelSettings.tagline || 'Live Selling';
+    const showDate = labelSettings.showDatetime;
+    const showOrder = labelSettings.showOrderId;
+
+    let labelContent = '';
+
+    if (labelSettings.template === 'minimal') {
+        labelContent = `
+            <div style="text-align:center;font-family:Arial;width:52mm;padding:4mm">
+                <div style="font-size:11pt;font-weight:900;letter-spacing:2px;text-transform:uppercase">${title}</div>
+                <div style="border-top:1px solid #000;margin:4px 0"></div>
+                <div style="font-size:14pt;font-weight:900;margin:6px 0">${username}</div>
+                <div style="border-top:1px solid #000;margin:4px 0"></div>
+                <div style="font-size:16pt;font-weight:900">${price}</div>
+                ${showDate ? `<div style="font-size:7pt;color:#666;margin-top:4px">${date}</div>` : ''}
+                ${showOrder ? `<div style="font-size:7pt;color:#666">${orderId}</div>` : ''}
+            </div>`;
+
+    } else if (labelSettings.template === 'bold') {
+        labelContent = `
+            <div style="font-family:Arial;width:52mm">
+                <div style="background:#1a3a0a;color:white;padding:6px;text-align:center;
+                            font-size:14pt;font-weight:900;letter-spacing:2px;
+                            text-transform:uppercase">${title}</div>
+                <div style="padding:4mm;text-align:center">
+                    <div style="font-size:8pt;color:#666;letter-spacing:2px;
+                                text-transform:uppercase;margin-bottom:2px">BUYER</div>
+                    <div style="font-size:18pt;font-weight:900;line-height:1.1;
+                                margin:4px 0;word-break:break-all">${username}</div>
+                    <div style="border-top:2px solid #000;margin:6px 0"></div>
+                    <div style="font-size:22pt;font-weight:900">${price}</div>
+                    ${showDate ? `<div style="font-size:7pt;color:#666;margin-top:6px">${date}</div>` : ''}
+                    ${showOrder ? `<div style="font-size:7pt;color:#666">${orderId}</div>` : ''}
+                </div>
+            </div>`;
+
+    } else {
+        // Classic template (default)
+        labelContent = `
+            <div style="text-align:center;font-family:Arial;width:52mm;
+                        padding:5mm;border:1.5px solid #000">
+                <div style="font-size:13pt;font-weight:900;letter-spacing:3px;
+                            text-transform:uppercase">${title}</div>
+                <div style="font-size:8pt;letter-spacing:3px;text-transform:uppercase;
+                            color:#444;margin-bottom:4px">${tagline}</div>
+                <div style="border-top:1px dashed #666;margin:5px 0"></div>
+                <div style="font-size:7pt;letter-spacing:3px;text-transform:uppercase;
+                            color:#666">BUYER</div>
+                <div style="font-size:15pt;font-weight:900;word-break:break-all;
+                            line-height:1.2;margin:3px 0">${username}</div>
+                <div style="border-top:1px dashed #666;margin:5px 0"></div>
+                <div style="display:flex;justify-content:space-between;
+                            align-items:center;margin:3px 0">
+                    <span style="font-size:7pt;font-weight:700;letter-spacing:2px;
+                                 text-transform:uppercase;color:#666">PRICE</span>
+                    <span style="font-size:13pt;font-weight:900">${price}</span>
+                </div>
+                <div style="border-top:1px dashed #666;margin:5px 0"></div>
+                ${showDate ? `<div style="font-size:7pt;color:#666;margin-top:2px">${date}</div>` : ''}
+                ${showOrder ? `<div style="font-size:7pt;color:#666">${orderId}</div>` : ''}
+            </div>`;
+    }
 
     const iframe = document.createElement('iframe');
     iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
@@ -196,29 +292,17 @@ function browserPrint() {
 
     const doc = iframe.contentWindow.document;
     doc.open();
-    doc.write(`
-        <!DOCTYPE html>
+    doc.write(`<!DOCTYPE html>
         <html>
         <head>
             <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { font-family: Arial, sans-serif; padding: 4mm; }
-                .print-label-box { width: 52mm; padding: 6mm 8mm; border: 1.5px solid #000; text-align: center; }
-                .print-brand { font-size: 13pt; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; }
-                .print-sub { font-size: 8pt; letter-spacing: 3px; text-transform: uppercase; color: #444; margin-bottom: 4px; }
-                .print-divider { border: none; border-top: 1px dashed #666; margin: 5px 0; }
-                .print-buyer-label { font-size: 7pt; letter-spacing: 3px; text-transform: uppercase; color: #666; }
-                .print-buyer { font-size: 15pt; font-weight: 900; word-break: break-all; line-height: 1.2; margin-bottom: 4px; }
-                .print-row { display: flex; justify-content: space-between; margin: 3px 0; }
-                .print-field-label { font-size: 7pt; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #666; min-width: 36px; }
-                .print-field-value { font-size: 12pt; font-weight: 900; }
-                .print-meta { font-size: 7pt; color: #666; margin-top: 2px; text-align: center; }
-                @page { size: 58mm auto; margin: 0; }
+                * { margin:0; padding:0; box-sizing:border-box; }
+                body { display:flex; justify-content:center; padding:4mm; }
+                @page { size:58mm auto; margin:0; }
             </style>
         </head>
-        <body>${labelHTML}</body>
-        </html>
-    `);
+        <body>${labelContent}</body>
+        </html>`);
     doc.close();
     iframe.contentWindow.focus();
     iframe.contentWindow.print();

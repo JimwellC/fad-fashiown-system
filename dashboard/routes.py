@@ -295,11 +295,23 @@ def settings():
         custom_keywords = request.form.get('custom_keywords', '').strip()
         highlight_numbers = request.form.get('highlight_numbers') == 'on'
 
+        # Label settings
+        label_title = request.form.get('label_title', '').strip()
+        label_tagline = request.form.get('label_tagline', '').strip()
+        label_template = request.form.get('label_template', 'classic')
+        label_show_order_id = request.form.get('label_show_order_id') == 'on'
+        label_show_datetime = request.form.get('label_show_datetime') == 'on'
+
         current_user.detection_mode = detection_mode
         current_user.custom_keywords = custom_keywords
         current_user.highlight_numbers = highlight_numbers
-        db.session.commit()
+        current_user.label_title = label_title or 'FAD FASHIOWN'
+        current_user.label_tagline = label_tagline or 'Live Selling'
+        current_user.label_template = label_template
+        current_user.label_show_order_id = label_show_order_id
+        current_user.label_show_datetime = label_show_datetime
 
+        db.session.commit()
         flash('Settings saved!', 'success')
         return redirect(url_for('dashboard.settings'))
 
@@ -328,5 +340,10 @@ def client_settings():
     return jsonify({
         'detection_mode': client.detection_mode or 'keywords',
         'custom_keywords': client.custom_keywords or 'mine,ako,akin,ko,me,samin',
-        'highlight_numbers': client.highlight_numbers or False
+        'highlight_numbers': client.highlight_numbers or False,
+        'label_title': client.label_title or 'FAD FASHIOWN',
+        'label_tagline': client.label_tagline or 'Live Selling',
+        'label_template': client.label_template or 'classic',
+        'label_show_order_id': client.label_show_order_id if client.label_show_order_id is not None else True,
+        'label_show_datetime': client.label_show_datetime if client.label_show_datetime is not None else True,
     })

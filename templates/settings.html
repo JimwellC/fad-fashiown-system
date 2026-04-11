@@ -89,6 +89,109 @@
             </div>
         </div>
 
+        <!-- Label Template -->
+        <div class="card" style="margin-bottom:20px">
+            <div class="card-header">
+                <span class="card-title">Label / Receipt Template</span>
+            </div>
+            <div class="card-body">
+
+                <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">
+                    Customize what appears on your printed label.
+                </p>
+
+                <!-- Business Name + Tagline -->
+                <div class="form-group">
+                    <label class="form-label">Business Name on Label</label>
+                    <input type="text"
+                        name="label_title"
+                        class="form-input"
+                        value="{{ client.label_title or 'FAD FASHIOWN' }}"
+                        placeholder="Your business name"
+                        maxlength="30" />
+                    <div style="font-size:11px;color:var(--text-light);margin-top:6px">
+                        Appears at the top of your label. Max 30 characters.
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tagline</label>
+                    <input type="text"
+                        name="label_tagline"
+                        class="form-input"
+                        value="{{ client.label_tagline or 'Live Selling' }}"
+                        placeholder="e.g. Live Selling, Online Shop"
+                        maxlength="30" />
+                </div>
+
+                <!-- Show/Hide Options -->
+                <div class="form-group">
+                    <label class="form-label">Show on Label</label>
+                    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                            <input type="checkbox"
+                                name="label_show_order_id"
+                                {% if client.label_show_order_id != False %}checked{% endif %} />
+                            <span style="font-size:13px">Order Number (e.g. Order #42)</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                            <input type="checkbox"
+                                name="label_show_datetime"
+                                {% if client.label_show_datetime != False %}checked{% endif %} />
+                            <span style="font-size:13px">Date & Time</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Template Style -->
+                <div class="form-group">
+                    <label class="form-label">Label Style</label>
+                    <div class="settings-mode-grid" style="margin-top:10px">
+
+                        <label class="mode-option {% if client.label_template == 'classic' or not client.label_template %}selected{% endif %}">
+                            <input type="radio" name="label_template" value="classic"
+                                {% if client.label_template == 'classic' or not client.label_template %}checked{% endif %}>
+                            <div class="mode-label">Classic</div>
+                            <div class="mode-desc">Traditional receipt with dividers and full details.</div>
+                            <div class="label-preview">
+                                <div class="lp-title">YOUR SHOP</div>
+                                <div class="lp-sub">Live Selling</div>
+                                <div class="lp-div"></div>
+                                <div class="lp-buyer">@username</div>
+                                <div class="lp-price">₱99.00</div>
+                            </div>
+                        </label>
+
+                        <label class="mode-option {% if client.label_template == 'minimal' %}selected{% endif %}">
+                            <input type="radio" name="label_template" value="minimal"
+                                {% if client.label_template == 'minimal' %}checked{% endif %}>
+                            <div class="mode-label">Minimal</div>
+                            <div class="mode-desc">Clean and simple. Just the essentials.</div>
+                            <div class="label-preview">
+                                <div class="lp-title" style="font-size:9px">YOUR SHOP</div>
+                                <div class="lp-buyer" style="font-size:13px;margin:4px 0">@username</div>
+                                <div class="lp-price">₱99.00</div>
+                            </div>
+                        </label>
+
+                        <label class="mode-option {% if client.label_template == 'bold' %}selected{% endif %}">
+                            <input type="radio" name="label_template" value="bold"
+                                {% if client.label_template == 'bold' %}checked{% endif %}>
+                            <div class="mode-label">Bold</div>
+                            <div class="mode-desc">Large text, high visibility for fast packing.</div>
+                            <div class="label-preview">
+                                <div style="background:#2d5016;color:white;padding:2px;font-size:7px;text-align:center;font-weight:900">YOUR SHOP</div>
+                                <div class="lp-buyer" style="font-size:14px;font-weight:900;margin:4px 0">@username</div>
+                                <div style="font-size:14px;font-weight:900">₱99.00</div>
+                            </div>
+                        </label>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
         <!-- Save Button -->
         <button type="submit" class="btn btn-primary" style="width:100%;padding:14px">
             Save Settings
@@ -103,11 +206,15 @@
 {% block scripts %}
 <script>
 // Highlight selected mode option
-document.querySelectorAll('input[name="detection_mode"]').forEach(radio => {
+document.querySelectorAll('.mode-option input[type="radio"]').forEach(radio => {
     radio.addEventListener('change', function() {
-        document.querySelectorAll('.mode-option').forEach(opt => {
+        // Find the parent grid container
+        const grid = this.closest('.settings-mode-grid');
+        // Only remove selected within THIS grid
+        grid.querySelectorAll('.mode-option').forEach(opt => {
             opt.classList.remove('selected');
         });
+        // Add selected to clicked option
         this.closest('.mode-option').classList.add('selected');
     });
 });

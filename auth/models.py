@@ -25,6 +25,13 @@ class Client(UserMixin, db.Model):
     custom_keywords = db.Column(db.Text, default='mine')
     highlight_numbers = db.Column(db.Boolean, default=False)
 
+    # Label settings
+    label_title = db.Column(db.String(100), default='FAD FASHIOWN')
+    label_tagline = db.Column(db.String(100), default='Live Selling')
+    label_template = db.Column(db.String(20), default='classic')
+    label_show_order_id = db.Column(db.Boolean, default=True)
+    label_show_datetime = db.Column(db.Boolean, default=True)
+
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(
             password
