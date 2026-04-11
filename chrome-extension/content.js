@@ -10,7 +10,7 @@
 
     const BACKEND_URL = 'https://web-production-1fba.up.railway.app/api/new-comment';
     const SETTINGS_URL = 'https://web-production-1fba.up.railway.app/api/client-settings';
-    const CLIENT_TOKEN = 'ed707688f74dffedd4fd14d11c2f7427c547d3f085aba2dcacfb47ec1c3d360e';
+    const CLIENT_TOKEN = '__CLIENT_TOKEN__';
 
     // ── DETECTION SETTINGS (loaded from server) ──
     let detectionMode = 'keywords';

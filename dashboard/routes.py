@@ -347,3 +347,118 @@ def client_settings():
         'label_show_order_id': client.label_show_order_id if client.label_show_order_id is not None else True,
         'label_show_datetime': client.label_show_datetime if client.label_show_datetime is not None else True,
     })
+
+@dashboard.route('/download-my-extension')
+@login_required
+def download_my_extension():
+    """Client downloads their own extension with token pre-embedded"""
+    import zipfile
+    import io
+    import os
+    import re
+    from datetime import datetime
+    from flask import make_response
+
+    client = current_user
+
+    # Generate token if missing
+    if not client.token:
+        import secrets
+        client.token = secrets.token_hex(32)
+        db.session.commit()
+
+    # Read extension files
+    ext_path = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)),
+        '..', 'chrome-extension'
+    )
+
+    # Read and update content.js with token
+    content_js_path = os.path.join(ext_path, 'content.js')
+    with open(content_js_path, 'r') as f:
+        content_js = f.read()
+
+    if '__CLIENT_TOKEN__' in content_js:
+        content_js_with_token = content_js.replace('__CLIENT_TOKEN__', client.token)
+    else:
+        content_js_with_token = re.sub(
+            r"const CLIENT_TOKEN = '[^']*'",
+            f"const CLIENT_TOKEN = '{client.token}'",
+            content_js
+        )
+
+    # Build README
+    readme = f"""FAD FASHIOWN - LIVE SELLING SYSTEM
+Setup Instructions for {client.business_name}
+{'=' * 50}
+
+DASHBOARD URL:
+https://web-production-1fba.up.railway.app
+
+YOUR LOGIN:
+Email: {client.email}
+
+SETUP STEPS:
+============
+
+STEP 1 - INSTALL QZ TRAY (for silent printing)
+  1. Go to: https://qz.io/download/
+  2. Download and install QZ Tray
+  3. Run it - icon appears in your taskbar/menu bar
+
+STEP 2 - INSTALL CHROME EXTENSION
+  1. Open Google Chrome
+  2. Go to: chrome://extensions
+  3. Turn ON "Developer mode" (top right toggle)
+  4. Click "Load unpacked"
+  5. Select the "fad-fashiown-extension" folder
+  6. Extension is now installed!
+
+STEP 3 - SET THERMAL PRINTER AS DEFAULT
+  Windows: Settings > Printers & Scanners > Set as Default
+  Mac: System Settings > Printers > Select your printer
+
+EVERY LIVE SESSION:
+===================
+1. Make sure QZ Tray is running (taskbar icon)
+2. Open dashboard and login
+3. Go live on TikTok on the SAME Chrome browser
+4. Viewers comment codes (L15, 46, LOCK 11, etc.)
+5. Green comments appear on dashboard
+6. Click winner comment to set as buyer
+7. Type the price → Press ENTER
+8. Label prints automatically!
+
+Generated: {datetime.now().strftime('%B %d, %Y')}
+"""
+
+    # Create zip
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        zip_file.writestr('README.txt', readme)
+        for filename in os.listdir(ext_path):
+            filepath = os.path.join(ext_path, filename)
+            if os.path.isfile(filepath):
+                if filename == 'content.js':
+                    zip_file.writestr(
+                        f'fad-fashiown-extension/{filename}',
+                        content_js_with_token
+                    )
+                else:
+                    zip_file.write(
+                        filepath,
+                        f'fad-fashiown-extension/{filename}'
+                    )
+
+    zip_buffer.seek(0)
+
+    safe_name = ''.join(
+        c for c in client.business_name
+        if c.isalnum() or c in (' ', '-', '_')
+    ).strip().replace(' ', '_')
+
+    response = make_response(zip_buffer.getvalue())
+    response.headers['Content-Type'] = 'application/zip'
+    response.headers['Content-Disposition'] = \
+        f'attachment; filename=FadFashiown_Extension_{safe_name}.zip'
+    return response
