@@ -68,9 +68,13 @@ socket.on('disconnect', function () {
     updateConnectionStatus(false);
 });
 
+// ── BUYER DETECTED ──
 socket.on('buyer_detected', function (data) {
     if (data.username && data.username.trim() !== '') {
         setBuyer(data.username, data.detected_at);
+        if (data.pinned) {
+            showPinModal(data.username, data.message || '');
+        }
     }
 });
 
@@ -507,6 +511,15 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
+document.addEventListener('DOMContentLoaded', function () {
+    const pinPrice = document.getElementById('pin-modal-price');
+    if (pinPrice) {
+        pinPrice.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') printFromModal();
+            if (e.key === 'Escape') closePinModal();
+        });
+    }
+});
 
 // ── KEYBOARD SHORTCUTS ──
 document.addEventListener('DOMContentLoaded', function () {
@@ -558,4 +571,37 @@ async function startPinDetection() {
         btn.textContent = 'Start Pin Detection';
         if (statusEl) statusEl.textContent = '❌ Connection error';
     }
+}
+
+// ── PIN COMMENT MODAL ──
+function showPinModal(username, message) {
+    const modal = document.getElementById('pin-modal');
+    const usernameEl = document.getElementById('pin-modal-username');
+    const messageEl = document.getElementById('pin-modal-message');
+    const priceEl = document.getElementById('pin-modal-price');
+
+    usernameEl.textContent = '@' + username;
+    messageEl.textContent = message ? '"' + message + '"' : '';
+    priceEl.value = '';
+
+    modal.style.display = 'flex';
+    setTimeout(() => priceEl.focus(), 100);
+}
+
+function closePinModal() {
+    document.getElementById('pin-modal').style.display = 'none';
+}
+
+function printFromModal() {
+    const price = document.getElementById('pin-modal-price').value.trim();
+
+    if (!price || isNaN(price) || parseFloat(price) <= 0) {
+        document.getElementById('pin-modal-price').focus();
+        showToast('Please enter a valid price', 'error');
+        return;
+    }
+
+    document.getElementById('price').value = price;
+    closePinModal();
+    printLabel();
 }
