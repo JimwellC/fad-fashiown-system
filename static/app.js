@@ -524,3 +524,38 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
+// ── START PIN DETECTION ──
+async function startPinDetection() {
+    const btn = document.getElementById('pin-detect-btn');
+    const statusEl = document.getElementById('pin-status');
+
+    btn.disabled = true;
+    btn.textContent = 'Connecting...';
+    if (statusEl) statusEl.textContent = 'Connecting to TikTok...';
+
+    try {
+        const res = await fetch('/api/start-pin-detection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            btn.textContent = 'Pin Detection Active';
+            btn.style.background = 'var(--green-dark)';
+            btn.style.color = 'white';
+            if (statusEl) statusEl.textContent = '✅ ' + data.message;
+            showToast('Pin detection started!', 'success');
+        } else {
+            btn.disabled = false;
+            btn.textContent = 'Start Pin Detection';
+            if (statusEl) statusEl.textContent = '❌ ' + (data.error || 'Failed');
+            showToast(data.error || 'Failed to start', 'error');
+        }
+    } catch(e) {
+        btn.disabled = false;
+        btn.textContent = 'Start Pin Detection';
+        if (statusEl) statusEl.textContent = '❌ Connection error';
+    }
+}

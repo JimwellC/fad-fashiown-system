@@ -192,6 +192,30 @@
             </div>
         </div>
 
+        <!-- TikTok Account -->
+        <div class="card" style="margin-bottom:20px">
+            <div class="card-header">
+                <span class="card-title">TikTok Account</span>
+            </div>
+            <div class="card-body">
+                <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+                    Enter your TikTok username to enable automatic pinned comment detection.
+                    You must be live for this to work.
+                </p>
+                <div class="form-group">
+                    <label class="form-label">TikTok Username</label>
+                    <input type="text"
+                        name="tiktok_username"
+                        class="form-input"
+                        value="{{ client.tiktok_username or '' }}"
+                        placeholder="yourusername (without @)" />
+                    <div style="font-size:11px;color:var(--text-light);margin-top:6px">
+                        Do not include the @ symbol. Save settings first before starting detection.
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Save Button -->
         <button type="submit" class="btn btn-primary" style="width:100%;padding:14px">
             Save Settings

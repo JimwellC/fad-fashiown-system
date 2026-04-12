@@ -251,3 +251,94 @@ def order_stats():
         'total_sales': total_sales,
         'avg_order': avg_order
     })
+
+@api.route('/api/pinned-comment', methods=['POST'])
+def pinned_comment():
+    """Receive pinned comment from Node.js TikTok listener"""
+    try:
+        data = request.get_json(force=True, silent=True)
+        username = data.get('username', '').strip()
+        message = data.get('message', '').strip()
+        token = data.get('token', '').strip()
+
+        if not username or not token:
+            return jsonify({"error": "Missing data"}), 400
+
+        from auth.models import Client
+        client = Client.query.filter_by(token=token).first()
+        if not client:
+            return jsonify({"error": "Invalid token"}), 401
+
+        client_id = client.id
+        print(f"📌 Pinned comment: @{username}: '{message}' → {client.business_name}")
+
+        # Auto-set as buyer and notify dashboard
+        set_current_buyer(client_id, username)
+
+        if socketio_ref:
+            # Notify dashboard of pinned buyer
+            socketio_ref.emit('buyer_detected', {
+                "username": username,
+                "detected_at": current_buyers[client_id]["detected_at"],
+                "pinned": True,
+                "message": message
+            }, room=f"client_{client_id}")
+
+            # Also show in comments panel
+            socketio_ref.emit('new_comment', {
+                "username": username,
+                "message": f"📌 {message}",
+                "is_buyer": True,
+                "pinned": True
+            }, room=f"client_{client_id}")
+
+        response = make_response(jsonify({"success": True}))
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+    except Exception as e:
+        print(f"Pinned comment error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api.route('/api/start-pin-detection', methods=['POST'])
+@login_required
+def start_pin_detection():
+    """Tell Node.js service to start listening to client's TikTok live"""
+    import requests as req
+    import os
+
+    tiktok_username = current_user.tiktok_username
+    if not tiktok_username:
+        return jsonify({"error": "No TikTok username set in Settings"}), 400
+
+    tiktok_username = tiktok_username.replace('@', '').strip()
+
+    railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '')
+    if railway_domain:
+        flask_url = f'https://{railway_domain}'
+    else:
+        flask_url = 'http://localhost:5000'
+
+    node_url = os.environ.get('NODE_LISTENER_URL', 'http://localhost:3000')
+
+    try:
+        response = req.post(f'{node_url}/start', json={
+            'tiktok_username': tiktok_username,
+            'client_token': current_user.token,
+            'flask_url': flask_url
+        }, timeout=10)
+
+        data = response.json()
+        if data.get('success'):
+            return jsonify({
+                "success": True,
+                "message": f"Listening to @{tiktok_username}"
+            })
+        else:
+            return jsonify({"error": data.get('error', 'Failed to connect')}), 500
+
+    except Exception as e:
+        return jsonify({
+            "error": f"Could not connect: {str(e)}"
+        }), 500

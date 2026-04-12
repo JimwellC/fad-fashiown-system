@@ -310,6 +310,8 @@ def settings():
         current_user.label_template = label_template
         current_user.label_show_order_id = label_show_order_id
         current_user.label_show_datetime = label_show_datetime
+        tiktok_username = request.form.get('tiktok_username', '').strip()
+        current_user.tiktok_username = tiktok_username.replace('@', '')
 
         db.session.commit()
         flash('Settings saved!', 'success')

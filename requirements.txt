@@ -13,3 +13,4 @@ simple-websocket==1.0.0
 gunicorn==21.2.0
 eventlet==0.35.2
 cryptography==46.0.7
+requests==2.32.3

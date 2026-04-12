@@ -16,6 +16,7 @@ class Client(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
+    tiktok_username = db.Column(db.String(100), default='')
 
     orders = db.relationship('Order', backref='client', lazy=True)
     token = db.Column(db.String(64), unique=True, nullable=True)
