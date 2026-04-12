@@ -42,6 +42,13 @@
         </div>
         <div class="stat-sub">Deactivated accounts</div>
     </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Orders</div>
+        <div class="stat-number">
+            {{ order_counts.values()|sum }}
+        </div>
+        <div class="stat-sub">Across all clients</div>
+    </div>
 </div>
 
 <div class="admin-grid">
@@ -99,14 +106,40 @@
                             <!-- Client Info Row -->
                             <div class="client-card-header">
                                 <div class="client-card-info">
-                                    <div class="client-card-name">{{ client.business_name }}</div>
-                                    <div class="client-card-email">{{ client.email }}</div>
-                                    {% if client.last_login %}
-                                    <div class="client-card-last-login">
-                                        Last login: {{ client.last_login.strftime('%b %d, %Y at %I:%M %p') }}
-                                    </div>
+                                <div class="client-card-name">{{ client.business_name }}</div>
+                                <div class="client-card-email">{{ client.email }}</div>
+
+                                <!-- TikTok Username -->
+                                <div style="margin-top:6px">
+                                    {% if client.tiktok_username %}
+                                    <span style="font-size:11px;background:var(--green-pale);
+                                                color:var(--green-dark);border:1px solid #C8E6C0;
+                                                padding:2px 8px;border-radius:10px;font-weight:600">
+                                        TikTok: @{{ client.tiktok_username }}
+                                    </span>
+                                    {% else %}
+                                    <span style="font-size:11px;background:#FFF8EC;
+                                                color:#7A4A00;border:1px solid #FFE0A0;
+                                                padding:2px 8px;border-radius:10px;font-weight:600">
+                                        TikTok: Not set
+                                    </span>
                                     {% endif %}
+
+                                    <!-- Order count -->
+                                    <span style="font-size:11px;background:var(--cream);
+                                                color:var(--text-muted);border:1px solid var(--border);
+                                                padding:2px 8px;border-radius:10px;font-weight:600;
+                                                margin-left:6px">
+                                        {{ order_counts[client.id] }} orders
+                                    </span>
                                 </div>
+
+                                {% if client.last_login %}
+                                <div class="client-card-last-login">
+                                    Last login: {{ client.last_login.strftime('%b %d, %Y at %I:%M %p') }}
+                                </div>
+                                {% endif %}
+                            </div>
                                 <div class="client-card-status">
                                     <span class="badge {{ 'badge-active' if client.is_active else 'badge-inactive' }}">
                                         {{ 'Active' if client.is_active else 'Inactive' }}

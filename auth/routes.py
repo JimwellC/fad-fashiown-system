@@ -77,10 +77,23 @@ def logout():
 @auth.route('/admin')
 @admin_required
 def admin_panel():
+    from auth.models import Order
     clients = Client.query.filter_by(is_admin=False).order_by(
         Client.created_at.desc()
     ).all()
-    return render_template('admin.html', clients=clients)
+
+    # Order counts per client
+    order_counts = {}
+    for client in clients:
+        order_counts[client.id] = Order.query.filter_by(
+            client_id=client.id
+        ).count()
+
+    return render_template(
+        'admin.html',
+        clients=clients,
+        order_counts=order_counts
+    )
 
 
 @auth.route('/admin/create-client', methods=['POST'])
@@ -158,6 +171,7 @@ def reset_password(client_id):
         flash('Password must be at least 6 characters', 'error')
         return redirect(url_for('auth.admin_panel'))
     client.set_password(new_password)
+    client.must_change_password = True  # Force change on next login
     db.session.commit()
     flash(f'Password reset for: {client.business_name}', 'success')
     return redirect(url_for('auth.admin_panel'))
