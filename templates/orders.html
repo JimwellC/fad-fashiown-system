@@ -209,6 +209,19 @@ function refreshStats() {
         })
         .catch(err => console.error('Stats refresh error:', err));
 }
+
+// ── PRESERVE SCROLL ON PAGINATION ──
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('page') && parseInt(urlParams.get('page')) > 1) {
+        const tableEl = document.querySelector('.table-card');
+        if (tableEl) {
+            setTimeout(() => {
+                tableEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    }
+});
 </script>
 
 {% endblock %}

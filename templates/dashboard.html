@@ -32,18 +32,17 @@
         <!-- Order Form -->
         <div class="card" style="margin-bottom:16px">
             <div class="card-body">
+
                 <div class="section-label" style="margin-bottom:16px">Enter Price</div>
 
                 <div class="form-group">
                     <label class="form-label">Price (₱)</label>
-                    <input
-                        type="number"
+                    <input type="number"
                         id="price"
                         class="form-input"
                         placeholder="0.00"
                         min="0"
-                        step="0.01"
-                    />
+                        step="0.01" />
                 </div>
 
                 <button class="btn btn-print" id="print-btn" onclick="printLabel()">
@@ -53,40 +52,54 @@
                     Clear Form
                 </button>
 
+                <!-- Manual Override -->
                 <div class="manual-section">
                     <div class="section-label" style="margin-bottom:10px">
                         Manual Override
                     </div>
                     <div class="manual-row">
-                        <input
-                            type="text"
+                        <input type="text"
                             id="manual-username"
                             class="form-input"
                             placeholder="Enter username manually"
-                            autocomplete="off"
-                        />
+                            autocomplete="off" />
                         <button class="btn btn-manual" onclick="setManualBuyer()">
                             Set
                         </button>
                     </div>
+                </div>
 
-                    <!-- Pin Detection -->
-                    <div class="manual-section" style="margin-top:16px">
-                        <div class="section-label" style="margin-bottom:10px">
-                            Pinned Comment Detection
-                        </div>
+                <!-- Pin Detection -->
+                <div class="manual-section" style="margin-top:16px">
+                    <div class="section-label" style="margin-bottom:10px">
+                        Pinned Comment Detection
+                    </div>
+                    <div style="display:flex;gap:8px;margin-bottom:8px">
+                        <input type="text"
+                            id="tiktok-username-input"
+                            class="form-input"
+                            placeholder="TikTok username"
+                            value="{{ current_user.tiktok_username or '' }}"
+                            style="flex:1;font-size:13px" />
                         <button class="btn btn-secondary"
                                 onclick="startPinDetection()"
                                 id="pin-detect-btn"
-                                style="width:100%">
-                            Start Pin Detection
+                                style="white-space:nowrap">
+                            Start
                         </button>
-                        <div id="pin-status"
-                            style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center">
-                            Set your TikTok username in Settings first
-                        </div>
+                        <button class="btn btn-danger"
+                                onclick="stopPinDetection()"
+                                id="pin-stop-btn"
+                                style="white-space:nowrap;display:none">
+                            Stop
+                        </button>
+                    </div>
+                    <div id="pin-status"
+                        style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center">
+                        Enter TikTok username and press Start
                     </div>
                 </div>
+
             </div>
         </div>
 
@@ -149,7 +162,8 @@
         <div class="print-meta" id="print-order-id"></div>
     </div>
 </div>
-<!-- ── PIN COMMENT MODAL ── -->
+
+<!-- PIN COMMENT MODAL -->
 <div id="pin-modal" style="
     display:none;
     position:fixed;

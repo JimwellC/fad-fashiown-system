@@ -548,18 +548,25 @@ async function startPinDetection() {
     if (statusEl) statusEl.textContent = 'Connecting to TikTok...';
 
     try {
+        const tiktokInput = document.getElementById('tiktok-username-input');
+        const tiktokUsername = tiktokInput ? tiktokInput.value.trim().replace('@', '') : '';
+
         const res = await fetch('/api/start-pin-detection', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tiktok_username_override: tiktokUsername })
         });
         const data = await res.json();
 
         if (data.success) {
-            btn.textContent = 'Pin Detection Active';
+            btn.textContent = 'Detection Active';
             btn.style.background = 'var(--green-dark)';
             btn.style.color = 'white';
             if (statusEl) statusEl.textContent = '✅ ' + data.message;
             showToast('Pin detection started!', 'success');
+            // Show stop button
+            const stopBtn = document.getElementById('pin-stop-btn');
+            if (stopBtn) stopBtn.style.display = 'inline-block';
         } else {
             btn.disabled = false;
             btn.textContent = 'Start Pin Detection';
@@ -571,6 +578,29 @@ async function startPinDetection() {
         btn.textContent = 'Start Pin Detection';
         if (statusEl) statusEl.textContent = '❌ Connection error';
     }
+}
+
+// ── STOP PIN DETECTION ──
+async function stopPinDetection() {
+    const btn = document.getElementById('pin-detect-btn');
+    const stopBtn = document.getElementById('pin-stop-btn');
+    const statusEl = document.getElementById('pin-status');
+
+    try {
+        await fetch('/api/stop-pin-detection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+    } catch(e) {}
+
+    // Reset UI
+    btn.disabled = false;
+    btn.textContent = 'Start';
+    btn.style.background = '';
+    btn.style.color = '';
+    if (stopBtn) stopBtn.style.display = 'none';
+    if (statusEl) statusEl.textContent = 'Detection stopped.';
+    showToast('Pin detection stopped', 'success');
 }
 
 // ── PIN COMMENT MODAL ──

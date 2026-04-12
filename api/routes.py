@@ -319,11 +319,18 @@ def start_pin_detection():
     import requests as req
     import os
 
-    tiktok_username = current_user.tiktok_username
+    # Allow override from dashboard input
+    data = request.get_json() or {}
+    tiktok_username = data.get('tiktok_username_override', '').strip()
+
+    # Fall back to saved settings
     if not tiktok_username:
-        return jsonify({"error": "No TikTok username set in Settings"}), 400
+        tiktok_username = current_user.tiktok_username or ''
 
     tiktok_username = tiktok_username.replace('@', '').strip()
+
+    if not tiktok_username:
+        return jsonify({"error": "Enter a TikTok username first"}), 400
 
     railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '')
     if railway_domain:
@@ -353,3 +360,92 @@ def start_pin_detection():
         return jsonify({
             "error": f"Could not connect: {str(e)}"
         }), 500
+
+
+@api.route('/api/stop-pin-detection', methods=['POST'])
+@login_required
+def stop_pin_detection():
+    """Tell Node.js to stop listening"""
+    import requests as req
+    import os
+
+    node_url = os.environ.get('NODE_LISTENER_URL', 'http://localhost:3000')
+
+    try:
+        req.post(f'{node_url}/stop', json={
+            'client_token': current_user.token
+        }, timeout=5)
+    except Exception:
+        pass  # Don't fail if Node is unreachable
+
+    return jsonify({"success": True, "message": "Detection stopped"})
+
+
+@api.route('/api/analytics-rankings')
+@login_required
+def analytics_rankings():
+    """AJAX endpoint for paginating buyers and items without page reload"""
+    from auth.models import Order
+
+    buyers_page = request.args.get('buyers_page', 1, type=int)
+    items_page = request.args.get('items_page', 1, type=int)
+    per_page = 5
+
+    all_orders = Order.query.filter_by(client_id=current_user.id).all()
+
+    # ── BUYERS ──
+    buyer_counts = {}
+    buyer_totals = {}
+    for o in all_orders:
+        buyer_counts[o.buyer_username] = buyer_counts.get(o.buyer_username, 0) + 1
+        buyer_totals[o.buyer_username] = buyer_totals.get(o.buyer_username, 0) + o.price
+
+    all_buyers = sorted(buyer_counts.items(), key=lambda x: x[1], reverse=True)
+    buyers_total = len(all_buyers)
+    buyers_pages = max(1, (buyers_total + per_page - 1) // per_page)
+    buyers_page = max(1, min(buyers_page, buyers_pages))
+    buyers_start = (buyers_page - 1) * per_page
+    buyers_data = [
+        {
+            'username': u,
+            'orders': c,
+            'total': buyer_totals[u],
+            'rank': buyers_start + i + 1
+        }
+        for i, (u, c) in enumerate(all_buyers[buyers_start:buyers_start + per_page])
+    ]
+    buyers_max = all_buyers[0][1] if all_buyers else 1
+
+    # ── ITEMS ──
+    item_counts = {}
+    item_totals = {}
+    for o in all_orders:
+        item_counts[o.item_name] = item_counts.get(o.item_name, 0) + 1
+        item_totals[o.item_name] = item_totals.get(o.item_name, 0) + o.price
+
+    all_items = sorted(item_counts.items(), key=lambda x: x[1], reverse=True)
+    items_total = len(all_items)
+    items_pages = max(1, (items_total + per_page - 1) // per_page)
+    items_page = max(1, min(items_page, items_pages))
+    items_start = (items_page - 1) * per_page
+    items_data = [
+        {
+            'name': n,
+            'orders': c,
+            'total': item_totals[n],
+            'rank': items_start + i + 1
+        }
+        for i, (n, c) in enumerate(all_items[items_start:items_start + per_page])
+    ]
+    items_max = all_items[0][1] if all_items else 1
+
+    return jsonify({
+        'buyers': buyers_data,
+        'buyers_page': buyers_page,
+        'buyers_pages': buyers_pages,
+        'buyers_max': buyers_max,
+        'items': items_data,
+        'items_page': items_page,
+        'items_pages': items_pages,
+        'items_max': items_max
+    })

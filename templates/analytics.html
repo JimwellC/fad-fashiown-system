@@ -108,7 +108,7 @@
                         <th>Total Spent</th>
                     </tr>
                 </thead>
-                <tbody>
+               <tbody id="buyers-tbody">
                     {% for buyer in top_buyers %}
                     {% set global_rank = (buyers_page - 1) * 5 + loop.index %}
                     <tr>
@@ -132,17 +132,19 @@
             {% if buyers_pages > 1 %}
             <div class="ranking-pagination">
                 <div class="ranking-page-btns left">
-                    <a href="/analytics?buyers_page={{ buyers_page - 1 }}&items_page={{ items_page }}"
-                    class="ranking-page-btn {% if buyers_page == 1 %}disabled{% endif %}">
+                    <button onclick="loadBuyers({{ buyers_page - 1 }})"
+                        class="ranking-page-btn {% if buyers_page == 1 %}disabled{% endif %}"
+                        {% if buyers_page == 1 %}disabled{% endif %}>
                         ← Prev
-                    </a>
+                    </button>
                 </div>
-                <span class="page-info">{{ buyers_page }} / {{ buyers_pages }}</span>
+                <span class="page-info" id="buyers-page-info">{{ buyers_page }} / {{ buyers_pages }}</span>
                 <div class="ranking-page-btns right">
-                    <a href="/analytics?buyers_page={{ buyers_page + 1 }}&items_page={{ items_page }}"
-                    class="ranking-page-btn {% if buyers_page == buyers_pages %}disabled{% endif %}">
+                    <button onclick="loadBuyers({{ buyers_page + 1 }})"
+                        class="ranking-page-btn {% if buyers_page == buyers_pages %}disabled{% endif %}"
+                        {% if buyers_page == buyers_pages %}disabled{% endif %}>
                         Next →
-                    </a>
+                    </button>
                 </div>
             </div>
             {% endif %}
@@ -172,7 +174,7 @@
                         <th>Total Revenue</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="items-tbody">
                     {% for item in top_items %}
                     {% set global_rank = (items_page - 1) * 5 + loop.index %}
                     <tr>
@@ -198,17 +200,19 @@
             {% if items_pages > 1 %}
             <div class="ranking-pagination">
                 <div class="ranking-page-btns left">
-                    <a href="/analytics?buyers_page={{ buyers_page }}&items_page={{ items_page - 1 }}"
-                    class="ranking-page-btn {% if items_page == 1 %}disabled{% endif %}">
+                    <button onclick="loadItems({{ items_page - 1 }})"
+                        class="ranking-page-btn {% if items_page == 1 %}disabled{% endif %}"
+                        {% if items_page == 1 %}disabled{% endif %}>
                         ← Prev
-                    </a>
+                    </button>
                 </div>
-                <span class="page-info">{{ items_page }} / {{ items_pages }}</span>
+                <span class="page-info" id="items-page-info">{{ items_page }} / {{ items_pages }}</span>
                 <div class="ranking-page-btns right">
-                    <a href="/analytics?buyers_page={{ buyers_page }}&items_page={{ items_page + 1 }}"
-                    class="ranking-page-btn {% if items_page == items_pages %}disabled{% endif %}">
+                    <button onclick="loadItems({{ items_page + 1 }})"
+                        class="ranking-page-btn {% if items_page == items_pages %}disabled{% endif %}"
+                        {% if items_page == items_pages %}disabled{% endif %}>
                         Next →
-                    </a>
+                    </button>
                 </div>
             </div>
             {% endif %}
@@ -393,5 +397,81 @@ new Chart(document.getElementById('monthlyChart'), {
         }
     }
 });
+
+// ── AJAX PAGINATION ──
+let currentBuyersPage = {{ buyers_page }};
+let currentItemsPage = {{ items_page }};
+let buyersMax = {{ top_buyers_max }};
+let itemsMax = {{ top_items_max }};
+
+async function loadBuyers(page) {
+    const res = await fetch(`/api/analytics-rankings?buyers_page=${page}&items_page=${currentItemsPage}`);
+    const data = await res.json();
+    currentBuyersPage = data.buyers_page;
+    buyersMax = data.buyers_max;
+
+    document.getElementById('buyers-tbody').innerHTML = data.buyers.map(b => `
+        <tr>
+            <td class="td-id">${b.rank}</td>
+            <td class="td-buyer">@${b.username}</td>
+            <td>
+                <span class="rank-bar-wrap">
+                    <span class="rank-bar" style="width:${Math.round(b.orders/buyersMax*100)}%"></span>
+                    <span class="rank-count">${b.orders}</span>
+                </span>
+            </td>
+            <td class="td-price">₱${b.total.toFixed(2)}</td>
+        </tr>
+    `).join('');
+
+    document.getElementById('buyers-page-info').textContent = `${data.buyers_page} / ${data.buyers_pages}`;
+    updateBuyersBtns(data.buyers_page, data.buyers_pages);
+}
+
+async function loadItems(page) {
+    const res = await fetch(`/api/analytics-rankings?buyers_page=${currentBuyersPage}&items_page=${page}`);
+    const data = await res.json();
+    currentItemsPage = data.items_page;
+    itemsMax = data.items_max;
+
+    document.getElementById('items-tbody').innerHTML = data.items.map(item => `
+        <tr>
+            <td class="td-id">${item.rank}</td>
+            <td class="td-item" style="font-weight:600">${item.name}</td>
+            <td>
+                <span class="rank-bar-wrap">
+                    <span class="rank-bar" style="width:${Math.round(item.orders/itemsMax*100)}%"></span>
+                    <span class="rank-count">${item.orders}</span>
+                </span>
+            </td>
+            <td class="td-price">₱${item.total.toFixed(2)}</td>
+        </tr>
+    `).join('');
+
+    document.getElementById('items-page-info').textContent = `${data.items_page} / ${data.items_pages}`;
+    updateItemsBtns(data.items_page, data.items_pages);
+}
+
+function updateBuyersBtns(page, pages) {
+    const btns = document.querySelectorAll('[onclick^="loadBuyers"]');
+    if (btns.length < 2) return;
+    btns[0].disabled = page <= 1;
+    btns[0].classList.toggle('disabled', page <= 1);
+    btns[0].onclick = () => loadBuyers(page - 1);
+    btns[1].disabled = page >= pages;
+    btns[1].classList.toggle('disabled', page >= pages);
+    btns[1].onclick = () => loadBuyers(page + 1);
+}
+
+function updateItemsBtns(page, pages) {
+    const btns = document.querySelectorAll('[onclick^="loadItems"]');
+    if (btns.length < 2) return;
+    btns[0].disabled = page <= 1;
+    btns[0].classList.toggle('disabled', page <= 1);
+    btns[0].onclick = () => loadItems(page - 1);
+    btns[1].disabled = page >= pages;
+    btns[1].classList.toggle('disabled', page >= pages);
+    btns[1].onclick = () => loadItems(page + 1);
+}
 </script>
 {% endblock %}
