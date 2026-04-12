@@ -84,8 +84,21 @@ app.post('/start', async (req, res) => {
         await tiktokConn.connect();
         res.json({ success: true, message: `Connected to @${tiktok_username}` });
     } catch(err) {
-        console.error('Connection error:', err.message);
-        res.json({ error: err.message });
+        const errMsg = err.message || String(err);
+        console.error('Connection error:', errMsg);
+
+        // Clean up failed connection
+        delete connections[client_token];
+
+        // Detect offline error
+        if (errMsg.toLowerCase().includes('offline') ||
+            errMsg.toLowerCase().includes('isn\'t online')) {
+            return res.json({
+                error: `@${tiktok_username} is not live right now. Go live first then try again.`
+            });
+        }
+
+        res.json({ error: errMsg });
     }
 });
 

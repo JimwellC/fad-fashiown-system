@@ -320,8 +320,8 @@ def start_pin_detection():
     import os
 
     # Allow override from dashboard input
-    data = request.get_json() or {}
-    tiktok_username = data.get('tiktok_username_override', '').strip()
+    body = request.get_json() or {}
+    tiktok_username = body.get('tiktok_username_override', '').strip()
 
     # Fall back to saved settings
     if not tiktok_username:
@@ -331,6 +331,12 @@ def start_pin_detection():
 
     if not tiktok_username:
         return jsonify({"error": "Enter a TikTok username first"}), 400
+
+    # ── AUTO-SAVE tiktok username if changed ──
+    if tiktok_username != (current_user.tiktok_username or '').strip():
+        current_user.tiktok_username = tiktok_username
+        db.session.commit()
+        print(f"✅ TikTok username updated: {current_user.business_name} → @{tiktok_username}")
 
     railway_domain = os.environ.get('RAILWAY_PUBLIC_DOMAIN', '')
     if railway_domain:
@@ -357,8 +363,13 @@ def start_pin_detection():
             return jsonify({"error": data.get('error', 'Failed to connect')}), 500
 
     except Exception as e:
+        error_msg = str(e)
+        if 'offline' in error_msg.lower() or 'isn\'t online' in error_msg.lower():
+            return jsonify({
+                "error": f"@{tiktok_username} is not live right now. Go live first then click Start."
+            }), 400
         return jsonify({
-            "error": f"Could not connect: {str(e)}"
+            "error": f"Could not connect: {error_msg}"
         }), 500
 
 
