@@ -477,10 +477,15 @@ body {
 .btn-danger {
     background: #FFF0EC;
     color: #8B2500;
-    border: 1px solid #FFCBB8;
+    border: 1.5px solid #FFCBB8;
+    font-weight: 700;
 }
 
-.btn-danger:hover { background: #FFE0D6; }
+.btn-danger:hover {
+    background: #8B2500;
+    color: white;
+    border-color: #8B2500;
+}
 
 .btn-success {
     background: var(--green-pale);
@@ -963,7 +968,7 @@ tbody td {
 /* ── CLIENT CARD ACTIONS ── */
 .client-card-actions {
     display: grid;
-    grid-template-columns: 1fr 1px 1fr 1px 1fr;
+    grid-template-columns: 1fr 1px 1.4fr 1px 1fr 1px 1fr;
     background: var(--cream);
     min-height: 80px;
 }
