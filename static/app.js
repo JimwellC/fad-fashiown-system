@@ -499,17 +499,7 @@ function updateConnectionStatus(connected) {
 
 
 // ── TOAST NOTIFICATIONS ──
-let toastTimeout;
-function showToast(message, type = 'success') {
-    const toast = document.getElementById('toast');
-    message = message.replace(/[✅❌🛒🖨️⏳]/g, '').trim();
-    toast.textContent = message;
-    toast.className = 'toast ' + type;
-    clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => {
-        toast.className = 'toast hidden';
-    }, 3000);
-}
+// showToast is defined globally in base.html
 
 document.addEventListener('DOMContentLoaded', function () {
     const pinPrice = document.getElementById('pin-modal-price');

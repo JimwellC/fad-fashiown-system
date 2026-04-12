@@ -144,6 +144,20 @@
 
 <!-- ── TOAST ── -->
 <div id="toast" class="toast hidden"></div>
+<script>
+let _toastTimeout;
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    message = message.replace(/[✅❌🛒🖨️⏳]/g, '').trim();
+    toast.textContent = message;
+    toast.className = 'toast ' + type;
+    clearTimeout(_toastTimeout);
+    _toastTimeout = setTimeout(() => {
+        toast.className = 'toast hidden';
+    }, 3000);
+}
+</script>
 
 <!-- ── GLOBAL MODAL ── -->
 <div class="modal-overlay" id="modal-overlay" style="display:none">
