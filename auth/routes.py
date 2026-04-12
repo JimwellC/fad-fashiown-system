@@ -104,12 +104,14 @@ def create_client():
         flash(f'Email already registered: {email}', 'error')
         return redirect(url_for('auth.admin_panel'))
 
+    import secrets
     client = Client(
         business_name=business_name,
         email=email,
         plan=plan,
         is_admin=False,
-        must_change_password=True
+        must_change_password=True,
+        token=secrets.token_hex(32)
     )
     client.set_password(password)
     db.session.add(client)
