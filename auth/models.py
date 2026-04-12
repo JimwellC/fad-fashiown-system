@@ -17,6 +17,7 @@ class Client(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
     tiktok_username = db.Column(db.String(100), default='')
+    must_change_password = db.Column(db.Boolean, default=False)
 
     orders = db.relationship('Order', backref='client', lazy=True)
     token = db.Column(db.String(64), unique=True, nullable=True)

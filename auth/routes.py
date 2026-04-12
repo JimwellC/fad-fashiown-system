@@ -48,6 +48,10 @@ def login():
         client.last_login = datetime.utcnow()
         db.session.commit()
 
+        # Force password change on first login
+        if client.must_change_password and not client.is_admin:
+            return redirect(url_for('auth.change_password'))
+
         print(f"✅ Login: {client.business_name}")
 
         if client.is_admin:
@@ -104,7 +108,8 @@ def create_client():
         business_name=business_name,
         email=email,
         plan=plan,
-        is_admin=False
+        is_admin=False,
+        must_change_password=True
     )
     client.set_password(password)
     db.session.add(client)
@@ -290,3 +295,32 @@ def download_extension(client_id):
     response.headers['Content-Type'] = 'application/zip'
     response.headers['Content-Disposition'] = f'attachment; filename={filename}'
     return response
+
+@auth.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    """Force password change on first login"""
+    if not current_user.must_change_password:
+        return redirect(url_for('dashboard.index'))
+
+    error = None
+    if request.method == 'POST':
+        new_password = request.form.get('new_password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+
+        if len(new_password) < 8:
+            error = 'Password must be at least 8 characters'
+        elif new_password != confirm_password:
+            error = 'Passwords do not match'
+        elif not any(c.isupper() for c in new_password):
+            error = 'Password must contain at least one uppercase letter'
+        elif not any(c.isdigit() for c in new_password):
+            error = 'Password must contain at least one number'
+        else:
+            current_user.set_password(new_password)
+            current_user.must_change_password = False
+            db.session.commit()
+            flash('Password changed successfully!', 'success')
+            return redirect(url_for('dashboard.index'))
+
+    return render_template('change_password.html', error=error)

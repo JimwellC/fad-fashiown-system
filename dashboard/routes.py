@@ -10,6 +10,17 @@ import io
 dashboard = Blueprint('dashboard', __name__)
 
 
+@dashboard.before_request
+@login_required
+def require_password_change():
+    """Force password change before accessing any dashboard page"""
+    if current_user.is_authenticated and \
+       not current_user.is_admin and \
+       hasattr(current_user, 'must_change_password') and \
+       current_user.must_change_password:
+        return redirect(url_for('auth.change_password'))
+
+
 @dashboard.route('/')
 @login_required
 def index():

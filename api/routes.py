@@ -12,6 +12,17 @@ socketio_ref = None
 current_buyers = {}
 
 
+@api.before_request
+def check_password_change_api():
+    """Block API access until password is changed"""
+    from flask_login import current_user
+    if current_user.is_authenticated and \
+       not current_user.is_admin and \
+       hasattr(current_user, 'must_change_password') and \
+       current_user.must_change_password:
+        return jsonify({"error": "Password change required"}), 403
+
+
 def set_socketio(sio):
     global socketio_ref
     socketio_ref = sio

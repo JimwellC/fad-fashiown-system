@@ -219,6 +219,52 @@
 
 {% block scripts %}
 <script>
+
+function handleCreateAccount() {
+    const form = document.getElementById('create-client-form');
+    const businessName = form.querySelector('[name="business_name"]').value.trim();
+    const email = form.querySelector('[name="email"]').value.trim();
+    const password = form.querySelector('[name="password"]').value.trim();
+
+    const errors = [];
+
+    if (!businessName) errors.push('Business name is required.');
+    if (!email) errors.push('Email is required.');
+    if (!password) {
+        errors.push('Password is required.');
+    } else {
+        if (password.length < 8)
+            errors.push('Password must be at least 8 characters.');
+        if (!/[a-z]/.test(password))
+            errors.push('Must contain at least one lowercase letter.');
+        if (!/[A-Z]/.test(password))
+            errors.push('Must contain at least one uppercase letter.');
+        if (!/[0-9]/.test(password))
+            errors.push('Must contain at least one number.');
+    }
+
+    if (errors.length > 0) {
+        Modal.alert({
+            title: 'Invalid Input',
+            message: errors.map((e, i) => `${i + 1}. ${e}`).join('\n'),
+            confirmText: 'OK'
+        });
+        return;
+    }
+
+    Modal.confirm({
+        title: 'Create Client Account',
+        message: 'You are about to create an account for:',
+        detail: businessName + ' (' + email + ')',
+        warning: 'Client will be prompted to change their password on first login.',
+        confirmText: 'Create Account',
+        confirmClass: 'btn-primary',
+        onConfirm: function() {
+            form.submit();
+        }
+    });
+}
+
 function handleResetPassword(clientId, clientName) {
     const input = document.getElementById('reset-input-' + clientId);
     const password = input.value.trim();
