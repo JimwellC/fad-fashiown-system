@@ -235,30 +235,30 @@ function browserPrint() {
 
     if (labelSettings.template === 'minimal') {
         labelContent = `
-            <div style="text-align:center;font-family:Arial;width:52mm;padding:4mm">
-                <div style="font-size:11pt;font-weight:900;letter-spacing:2px;text-transform:uppercase">${title}</div>
-                <div style="border-top:1px solid #000;margin:4px 0"></div>
-                <div style="font-size:14pt;font-weight:900;margin:6px 0">${username}</div>
-                <div style="border-top:1px solid #000;margin:4px 0"></div>
-                <div style="font-size:16pt;font-weight:900">${price}</div>
-                ${showDate ? `<div style="font-size:7pt;color:#666;margin-top:4px">${date}</div>` : ''}
+            <div style="text-align:center;font-family:Arial;width:66mm;padding:2mm 3mm;">
+                <div style="font-size:12pt;font-weight:900;letter-spacing:2px;text-transform:uppercase;margin-bottom:1mm">${title}</div>
+                <div style="border-top:1px solid #000;margin:1mm 0"></div>
+                <div style="font-size:16pt;font-weight:900;margin:1mm 0">${username}</div>
+                <div style="border-top:1px solid #000;margin:1mm 0"></div>
+                <div style="font-size:18pt;font-weight:900">${price}</div>
+                ${showDate ? `<div style="font-size:7pt;color:#666;margin-top:1mm">${date}</div>` : ''}
                 ${showOrder ? `<div style="font-size:7pt;color:#666">${orderId}</div>` : ''}
             </div>`;
 
     } else if (labelSettings.template === 'bold') {
         labelContent = `
-            <div style="font-family:Arial;width:52mm">
-                <div style="background:#1a3a0a;color:white;padding:6px;text-align:center;
-                            font-size:14pt;font-weight:900;letter-spacing:2px;
+            <div style="font-family:Arial;width:66mm;">
+                <div style="background:#1a3a0a;color:white;padding:2mm 3mm;text-align:center;
+                            font-size:12pt;font-weight:900;letter-spacing:2px;
                             text-transform:uppercase">${title}</div>
-                <div style="padding:4mm;text-align:center">
-                    <div style="font-size:8pt;color:#666;letter-spacing:2px;
-                                text-transform:uppercase;margin-bottom:2px">BUYER</div>
+                <div style="padding:1mm 3mm;text-align:center">
+                    <div style="font-size:7pt;color:#666;letter-spacing:2px;
+                                text-transform:uppercase;margin-bottom:1mm">BUYER</div>
                     <div style="font-size:18pt;font-weight:900;line-height:1.1;
-                                margin:4px 0;word-break:break-all">${username}</div>
-                    <div style="border-top:2px solid #000;margin:6px 0"></div>
-                    <div style="font-size:22pt;font-weight:900">${price}</div>
-                    ${showDate ? `<div style="font-size:7pt;color:#666;margin-top:6px">${date}</div>` : ''}
+                                margin:1mm 0;word-break:break-all">${username}</div>
+                    <div style="border-top:2px solid #000;margin:1mm 0"></div>
+                    <div style="font-size:20pt;font-weight:900">${price}</div>
+                    ${showDate ? `<div style="font-size:7pt;color:#666;margin-top:1mm">${date}</div>` : ''}
                     ${showOrder ? `<div style="font-size:7pt;color:#666">${orderId}</div>` : ''}
                 </div>
             </div>`;
@@ -266,26 +266,26 @@ function browserPrint() {
     } else {
         // Classic template (default)
         labelContent = `
-            <div style="text-align:center;font-family:Arial;width:52mm;
-                        padding:5mm;border:1.5px solid #000">
-                <div style="font-size:13pt;font-weight:900;letter-spacing:3px;
-                            text-transform:uppercase">${title}</div>
-                <div style="font-size:8pt;letter-spacing:3px;text-transform:uppercase;
-                            color:#444;margin-bottom:4px">${tagline}</div>
-                <div style="border-top:1px dashed #666;margin:5px 0"></div>
-                <div style="font-size:7pt;letter-spacing:3px;text-transform:uppercase;
+            <div style="text-align:center;font-family:Arial;width:66mm;
+                        padding:2mm 3mm;border:1px solid #000;">
+                <div style="font-size:15pt;font-weight:900;letter-spacing:2px;
+                            text-transform:uppercase;line-height:1.2">${title}</div>
+                <div style="font-size:10pt;letter-spacing:2px;text-transform:uppercase;
+                            color:#444;margin-bottom:1mm">${tagline}</div>
+                <div style="border-top:1px dashed #666;margin:1.5mm 0"></div>
+                <div style="font-size:10pt;letter-spacing:2px;text-transform:uppercase;
                             color:#666">BUYER</div>
-                <div style="font-size:15pt;font-weight:900;word-break:break-all;
-                            line-height:1.2;margin:3px 0">${username}</div>
-                <div style="border-top:1px dashed #666;margin:5px 0"></div>
+                <div style="font-size:18pt;font-weight:900;word-break:break-all;
+                            line-height:1.2;margin:1mm 0">${username}</div>
+                <div style="border-top:1px dashed #666;margin:1.5mm 0"></div>
                 <div style="display:flex;justify-content:space-between;
-                            align-items:center;margin:3px 0">
-                    <span style="font-size:7pt;font-weight:700;letter-spacing:2px;
+                            align-items:center;margin:1mm 0">
+                    <span style="font-size:7pt;font-weight:700;letter-spacing:1px;
                                  text-transform:uppercase;color:#666">PRICE</span>
-                    <span style="font-size:13pt;font-weight:900">${price}</span>
+                    <span style="font-size:16pt;font-weight:900">${price}</span>
                 </div>
-                <div style="border-top:1px dashed #666;margin:5px 0"></div>
-                ${showDate ? `<div style="font-size:7pt;color:#666;margin-top:2px">${date}</div>` : ''}
+                ${showDate || showOrder ? `<div style="border-top:1px dashed #666;margin:1.5mm 0"></div>` : ''}
+                ${showDate ? `<div style="font-size:7pt;color:#666">${date}</div>` : ''}
                 ${showOrder ? `<div style="font-size:7pt;color:#666">${orderId}</div>` : ''}
             </div>`;
     }
@@ -301,8 +301,12 @@ function browserPrint() {
         <head>
             <style>
                 * { margin:0; padding:0; box-sizing:border-box; }
-                body { display:flex; justify-content:center; padding:4mm; }
-                @page { size:58mm auto; margin:0; }
+                html, body { width:70mm; height:50mm; overflow:hidden; }
+                body { display:flex; justify-content:center; align-items:center; }
+                @page { size:70mm 50mm landscape; margin:0; }
+                @media print {
+                    html, body { width:70mm; height:50mm; overflow:hidden; }
+                }
             </style>
         </head>
         <body>${labelContent}</body>

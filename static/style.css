@@ -1732,8 +1732,8 @@ tbody td {
     }
 
     @page {
-        size: A4 portrait;
-        margin: 10mm;
+        size: 70mm 50mm landscape;
+        margin: 0;
     }
 }
 
