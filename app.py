@@ -141,5 +141,9 @@ if __name__ == '__main__':
         host='0.0.0.0',
         port=int(os.getenv('PORT', 5000)),
         debug=os.getenv('DEBUG', 'False') == 'True',
-        use_reloader=False
+        use_reloader=False,
+        # Local dev only (this __main__ block never runs under gunicorn, which is
+        # how production starts). Lets the Werkzeug dev server start for local
+        # testing without the "not designed for production" guard aborting it.
+        allow_unsafe_werkzeug=True
     )
