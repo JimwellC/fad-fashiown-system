@@ -34,12 +34,27 @@ def index():
     )
 
 
+def _platform_filter(query, platform):
+    """Scope an Order query to a platform tab. TikTok covers legacy rows too
+    (NULL / anything that isn't 'facebook'), so nothing is lost on that tab."""
+    if platform == 'facebook':
+        return query.filter(Order.platform == 'facebook')
+    return query.filter(
+        db.or_(Order.platform.is_(None), Order.platform != 'facebook')
+    )
+
+
 @dashboard.route('/orders')
 @login_required
 def orders():
-    """Full order history page - clients only"""
+    """Full order history page - clients only. TikTok and Facebook orders are
+    shown on separate tabs (server-side filter so pagination/stats stay per-tab)."""
     if current_user.is_admin:
         return redirect(url_for('auth.admin_panel'))
+
+    platform = request.args.get('platform', 'tiktok')
+    if platform not in ('tiktok', 'facebook'):
+        platform = 'tiktok'
 
     search = request.args.get('search', '').strip()
     date_from = request.args.get('date_from', '')
@@ -47,7 +62,9 @@ def orders():
     page = request.args.get('page', 1, type=int)
     per_page = 20
 
-    query = Order.query.filter_by(client_id=current_user.id)
+    query = _platform_filter(
+        Order.query.filter_by(client_id=current_user.id), platform
+    )
 
     if search:
         query = query.filter(
@@ -71,9 +88,17 @@ def orders():
         except ValueError:
             pass
 
-    all_orders = Order.query.filter_by(client_id=current_user.id).all()
-    total_orders = len(all_orders)
-    total_sales = sum(o.price for o in all_orders)
+    # Stats scoped to the ACTIVE tab's platform.
+    platform_orders = _platform_filter(
+        Order.query.filter_by(client_id=current_user.id), platform
+    ).all()
+    total_orders = len(platform_orders)
+    total_sales = sum(o.price for o in platform_orders)
+
+    # Counts for BOTH tabs (shown as badges on the tabs).
+    base = Order.query.filter_by(client_id=current_user.id)
+    tiktok_count = _platform_filter(base, 'tiktok').count()
+    facebook_count = _platform_filter(base, 'facebook').count()
 
     orders_paginated = query.order_by(
         Order.timestamp.desc()
@@ -82,6 +107,9 @@ def orders():
     return render_template(
         'orders.html',
         orders=orders_paginated,
+        platform=platform,
+        tiktok_count=tiktok_count,
+        facebook_count=facebook_count,
         search=search,
         date_from=date_from,
         date_to=date_to,
@@ -94,13 +122,15 @@ def orders():
 @dashboard.route('/orders/export')
 @login_required
 def export_orders():
-    """Export orders to CSV"""
+    """Export orders to CSV — scoped to the tab (platform) the user is viewing."""
     if current_user.is_admin:
         return redirect(url_for('auth.admin_panel'))
 
-    orders = Order.query.filter_by(
-        client_id=current_user.id
-    ).order_by(Order.timestamp.desc()).all()
+    tab = request.args.get('platform', '')
+    query = Order.query.filter_by(client_id=current_user.id)
+    if tab in ('tiktok', 'facebook'):
+        query = _platform_filter(query, tab)
+    orders = query.order_by(Order.timestamp.desc()).all()
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -110,7 +140,7 @@ def export_orders():
     ])
 
     for order in orders:
-        platform = (order.platform or 'tiktok').capitalize()
+        row_platform = (order.platform or 'tiktok').capitalize()
         if order.platform == 'facebook':
             if order.message_sent:
                 msg_status = 'Sent'
@@ -123,7 +153,7 @@ def export_orders():
         writer.writerow([
             order.id,
             order.buyer_username,
-            platform,
+            row_platform,
             order.item_name,
             f'₱{order.price:.2f}',
             order.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
@@ -132,7 +162,8 @@ def export_orders():
         ])
 
     output.seek(0)
-    filename = f"orders_{current_user.business_name}_{datetime.now().strftime('%Y%m%d')}.csv"
+    tab_label = f'{tab}_' if tab in ('tiktok', 'facebook') else ''
+    filename = f"orders_{tab_label}{current_user.business_name}_{datetime.now().strftime('%Y%m%d')}.csv"
 
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'

@@ -274,8 +274,18 @@ def delete_order(order_id):
 @api.route('/api/order-stats', methods=['GET'])
 @login_required
 def order_stats():
-    """Get current order stats for this client"""
-    orders = Order.query.filter_by(client_id=current_user.id).all()
+    """Get current order stats for this client, optionally scoped to a platform
+    tab so the Order History stat cards stay correct after a delete."""
+    query = Order.query.filter_by(client_id=current_user.id)
+    platform = request.args.get('platform', '')
+    if platform == 'facebook':
+        query = query.filter(Order.platform == 'facebook')
+    elif platform == 'tiktok':
+        query = query.filter(
+            db.or_(Order.platform.is_(None), Order.platform != 'facebook')
+        )
+
+    orders = query.all()
     total_orders = len(orders)
     total_sales = sum(o.price for o in orders)
     avg_order = total_sales / total_orders if total_orders > 0 else 0

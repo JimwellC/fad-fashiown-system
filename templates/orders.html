@@ -4,20 +4,70 @@
 {% block page_title %}Order History{% endblock %}
 
 {% block topbar_right %}
-<a href="/orders/export" class="btn btn-export">Export CSV</a>
+<a href="/orders/export?platform={{ platform }}" class="btn btn-export">Export CSV</a>
 {% endblock %}
 
 {% block content %}
 
-<!-- Stats -->
+<style>
+    .order-tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border);
+    }
+    .otab {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        border-bottom: 2px solid transparent;
+        padding: 10px 18px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        margin-bottom: -1px;
+    }
+    .otab:hover { color: var(--text-dark); }
+    .otab.active { color: var(--green-dark); border-bottom-color: var(--green-dark); }
+    .otab-count {
+        font-size: 11px;
+        font-weight: 700;
+        background: var(--cream);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        padding: 1px 8px;
+        border-radius: 10px;
+    }
+    .otab.active .otab-count {
+        background: var(--green-pale);
+        border-color: #C8E6C0;
+        color: var(--green-dark);
+    }
+</style>
+
+<!-- Platform tabs -->
+<div class="order-tabs">
+    <a href="/orders?platform=tiktok"
+       class="otab {% if platform == 'tiktok' %}active{% endif %}">
+        TikTok <span class="otab-count">{{ tiktok_count }}</span>
+    </a>
+    <a href="/orders?platform=facebook"
+       class="otab {% if platform == 'facebook' %}active{% endif %}">
+        Facebook <span class="otab-count">{{ facebook_count }}</span>
+    </a>
+</div>
+
+<!-- Stats (for the active tab) -->
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-label">Total Orders</div>
+        <div class="stat-label">{{ platform|capitalize }} Orders</div>
         <div class="stat-number">{{ total_orders }}</div>
         <div class="stat-sub">All time</div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">Total Sales</div>
+        <div class="stat-label">{{ platform|capitalize }} Sales</div>
         <div class="stat-number">₱{{ "%.2f"|format(total_sales) }}</div>
         <div class="stat-sub">All time revenue</div>
     </div>
@@ -33,6 +83,7 @@
 <!-- Filters -->
 <div class="filters-card">
     <form method="GET" action="/orders">
+        <input type="hidden" name="platform" value="{{ platform }}" />
         <div class="filters-row">
             <div class="form-group" style="margin:0">
                 <label class="form-label">Search</label>
@@ -56,7 +107,7 @@
             </div>
             <div class="form-group" style="margin:0">
                 <label class="form-label">&nbsp;</label>
-                <a href="/orders" class="btn btn-secondary">Clear</a>
+                <a href="/orders?platform={{ platform }}" class="btn btn-secondary">Clear</a>
             </div>
         </div>
     </form>
@@ -65,7 +116,7 @@
 <!-- Table -->
 <div class="table-card">
     <div class="table-header">
-        <span class="card-title">Orders ({{ orders.total }} found)</span>
+        <span class="card-title">{{ platform|capitalize }} Orders ({{ orders.total }} found)</span>
     </div>
 
     {% if orders.items %}
@@ -74,12 +125,11 @@
             <tr>
                 <th>Order #</th>
                 <th>Buyer</th>
-                <th>Platform</th>
                 <th>Item</th>
                 <th>Price</th>
                 <th>Date & Time</th>
                 <th>Status</th>
-                <th>Message</th>
+                {% if platform == 'facebook' %}<th>Message</th>{% endif %}
                 <th></th>
             </tr>
         </thead>
@@ -88,13 +138,6 @@
             <tr id="order-row-{{ order.id }}">
                 <td class="td-id">#{{ order.id }}</td>
                 <td class="td-buyer">@{{ order.buyer_username }}</td>
-                <td>
-                    {% if order.platform == 'facebook' %}
-                    <span class="badge" style="background:#E7F0FF;color:#1877F2;border:1px solid #B9D4FF">Facebook</span>
-                    {% else %}
-                    <span class="badge" style="background:#F0EBE0;color:var(--text-muted);border:1px solid var(--border)">TikTok</span>
-                    {% endif %}
-                </td>
                 <td class="td-item">{{ order.item_name }}</td>
                 <td class="td-price">₱{{ "%.2f"|format(order.price) }}</td>
                 <td class="td-time">
@@ -104,22 +147,20 @@
                     </span>
                 </td>
                 <td><span class="badge badge-success">Printed</span></td>
+                {% if platform == 'facebook' %}
                 <td>
-                    {% if order.platform == 'facebook' %}
-                        {% if order.message_sent %}
-                        <span class="badge badge-success">Sent</span>
-                        {% elif order.message_failed %}
-                        <span class="badge" style="background:#FDECEC;color:#C0392B;border:1px solid #F5C6C6">Failed</span>
-                        {% else %}
-                        <span class="badge" style="background:#FFF8EC;color:#7A4A00;border:1px solid #FFE0A0">Pending</span>
-                        {% endif %}
+                    {% if order.message_sent %}
+                    <span class="badge badge-success">Sent</span>
+                    {% elif order.message_failed %}
+                    <span class="badge" style="background:#FDECEC;color:#C0392B;border:1px solid #F5C6C6">Failed</span>
                     {% else %}
-                        <span style="color:var(--text-light)">—</span>
+                    <span class="badge" style="background:#FFF8EC;color:#7A4A00;border:1px solid #FFE0A0">Pending</span>
                     {% endif %}
                 </td>
+                {% endif %}
                 <td>
-                    <button 
-                        class="btn-delete-order" 
+                    <button
+                        class="btn-delete-order"
                         onclick="deleteOrder({{order.id}}, this)"
                         data-username="{{ order.buyer_username }}"
                         title="Delete order">
@@ -134,12 +175,12 @@
     {% if orders.pages > 1 %}
     <div class="pagination">
         {% if orders.has_prev %}
-        <a href="/orders?page={{ orders.prev_num }}&search={{ search }}&date_from={{ date_from }}&date_to={{ date_to }}"
+        <a href="/orders?platform={{ platform }}&page={{ orders.prev_num }}&search={{ search }}&date_from={{ date_from }}&date_to={{ date_to }}"
            class="page-btn">Previous</a>
         {% endif %}
         <span class="page-info">Page {{ orders.page }} of {{ orders.pages }}</span>
         {% if orders.has_next %}
-        <a href="/orders?page={{ orders.next_num }}&search={{ search }}&date_from={{ date_from }}&date_to={{ date_to }}"
+        <a href="/orders?platform={{ platform }}&page={{ orders.next_num }}&search={{ search }}&date_from={{ date_from }}&date_to={{ date_to }}"
            class="page-btn">Next</a>
         {% endif %}
     </div>
@@ -148,14 +189,15 @@
     {% else %}
     <div class="empty-state" style="padding:60px">
         <p style="font-size:16px;color:var(--text-medium);margin-bottom:8px">
-            No orders found
+            No {{ platform|capitalize }} orders found
         </p>
         <p>
             {% if search or date_from or date_to %}
                 No orders match your search criteria.
-                <a href="/orders" style="color:var(--green-dark)">Clear filters</a>
+                <a href="/orders?platform={{ platform }}" style="color:var(--green-dark)">Clear filters</a>
             {% else %}
-                Orders will appear here after your first live selling session.
+                {{ platform|capitalize }} orders will appear here after your first
+                {{ platform|capitalize }} live selling session.
             {% endif %}
         </p>
     </div>
@@ -167,6 +209,8 @@
 {% block scripts %}
 
 <script>
+const ORDERS_PLATFORM = {{ platform|tojson }};
+
 function deleteOrder(orderId, btn) {
     const username = btn.getAttribute('data-username');
     Modal.confirm({
@@ -204,28 +248,25 @@ function deleteOrder(orderId, btn) {
 }
 
 function refreshStats() {
-    fetch('/api/order-stats')
+    fetch('/api/order-stats?platform=' + encodeURIComponent(ORDERS_PLATFORM))
         .then(res => res.json())
         .then(data => {
-            // Update total orders
             const totalEl = document.querySelector('.stat-card:nth-child(1) .stat-number');
             if (totalEl) totalEl.textContent = data.total_orders;
 
-            // Update total sales
             const salesEl = document.querySelector('.stat-card:nth-child(2) .stat-number');
             if (salesEl) salesEl.textContent = '₱' + data.total_sales.toFixed(2);
 
-            // Update average
             const avgEl = document.querySelector('.stat-card:nth-child(3) .stat-number');
             if (avgEl) avgEl.textContent = '₱' + data.avg_order.toFixed(2);
 
-            // Update orders found count
+            // Update the "found" count in the table header
             const foundEl = document.querySelector('.table-header .card-title');
             if (foundEl) {
                 const current = foundEl.textContent.match(/\((\d+) found\)/);
                 if (current) {
                     const newCount = parseInt(current[1]) - 1;
-                    foundEl.textContent = `Orders (${newCount} found)`;
+                    foundEl.textContent = foundEl.textContent.replace(/\(\d+ found\)/, `(${newCount} found)`);
                 }
             }
         })
