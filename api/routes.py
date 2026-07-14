@@ -1,5 +1,5 @@
 # api/routes.py
-from flask import Blueprint, request, jsonify, make_response
+from flask import Blueprint, request, jsonify, make_response, current_app
 from flask_login import login_required, current_user
 from datetime import datetime
 from database import db
@@ -148,17 +148,40 @@ def print_label():
     except ValueError:
         return jsonify({"error": "Invalid price"}), 400
 
+    # Platform is 'tiktok' unless the dashboard explicitly marks this a Facebook
+    # win. TikTok flow never sets these, so its behavior is unchanged.
+    platform = (data.get('platform') or 'tiktok').strip().lower()
+    if platform not in ('tiktok', 'facebook'):
+        platform = 'tiktok'
+    comment_id = (data.get('comment_id') or '').strip() or None
+    psid = (data.get('psid') or '').strip() or None
+
     order = Order(
         client_id=current_user.id,
         buyer_username=username,
         item_name=item_name,
         price=price,
-        label_printed=True
+        label_printed=True,
+        platform=platform,
+        fb_comment_id=comment_id if platform == 'facebook' else None,
+        buyer_psid=psid if platform == 'facebook' else None
     )
     db.session.add(order)
     db.session.commit()
 
-    print(f"Order saved: {username} | {item_name} | ₱{price}")
+    print(f"Order saved: {username} | {item_name} | ₱{price} [{platform}]")
+
+    # ── Facebook auto-message batching (guarded; no-op for TikTok) ──
+    if platform == 'facebook' and \
+       current_user.fb_auto_message_enabled and \
+       current_user.facebook_page_token:
+        try:
+            from api.facebook_routes import schedule_message_for_order
+            schedule_message_for_order(
+                current_app._get_current_object(), current_user, order
+            )
+        except Exception as e:
+            print(f"FB schedule error: {e}")
 
     order_dict = order.to_dict()
 

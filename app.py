@@ -75,21 +75,29 @@ def create_app():
     from auth.routes import auth
     from dashboard.routes import dashboard
     from api.routes import api
+    from api.facebook_routes import facebook
 
     app.register_blueprint(auth)
     app.register_blueprint(dashboard)
     app.register_blueprint(api)
+    app.register_blueprint(facebook)
 
     # ── CREATE DATABASE TABLES ──
     with app.app_context():
         if 'sqlite' in database_url:
             db_dir = os.path.join(base_dir, 'database')
             os.makedirs(db_dir, exist_ok=True)
-        db.create_all()
+        db.create_all()  # creates missing TABLES only (not new columns)
+        # Additive column migrations for existing tables (Facebook feature).
+        # create_all() cannot add columns to tables that already exist.
+        from migrations import migrate_fb_columns
+        migrate_fb_columns(db)
         print("✅ Database tables created")
 
     # ── PASS SOCKETIO TO API ──
     set_socketio(socketio)
+    from api.facebook_routes import set_socketio as set_fb_socketio
+    set_fb_socketio(socketio)
 
     return app
 

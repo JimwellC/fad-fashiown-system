@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Facebook Live{% endblock %}
+{% block head %}
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+{% endblock %}
+
+{% block page_title %}Facebook Live{% endblock %}
+
+{% block topbar_right %}
+<span id="fb-connection-status" class="status-pill disconnected">Connecting...</span>
+<span class="status-pill" style="background:#E7F0FF;color:#1877F2;border:1px solid #B9D4FF">
+    Facebook
+</span>
+{% endblock %}
+
+{% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for category, message in messages %}
+                showToast('{{ message }}', '{{ "success" if category == "success" else "error" }}');
+            {% endfor %}
+        });
+    </script>
+    {% endif %}
+{% endwith %}
+
+<div class="dashboard-grid">
+
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+
+        <!-- Current Buyer -->
+        <div class="card buyer-card" id="fb-buyer-card" style="margin-bottom:16px">
+            <div class="card-body">
+                <div class="section-label">Current Buyer</div>
+                <div class="buyer-username" id="fb-buyer-username">
+                    Waiting for buyer...
+                </div>
+                <div id="fb-buyer-warning"
+                     style="display:none;font-size:11px;color:#C0392B;margin-top:6px"></div>
+            </div>
+        </div>
+
+        <!-- Price + Print -->
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-body">
+                <div class="section-label" style="margin-bottom:16px">Enter Price</div>
+                <div class="form-group">
+                    <label class="form-label">Price (₱)</label>
+                    <input type="number" id="fb-price" class="form-input"
+                           placeholder="0.00" min="0" step="0.01" />
+                </div>
+                <button class="btn btn-print" id="fb-print-btn" onclick="fbPrintLabel()">
+                    Print Label
+                </button>
+                <div style="font-size:11px;color:var(--text-light);margin-top:10px;text-align:center">
+                    Saving an order queues the buyer's Messenger message.
+                    More wins by the same buyer are combined into one.
+                </div>
+            </div>
+        </div>
+
+        <!-- Detection -->
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+                <span class="card-title">Live Detection</span>
+            </div>
+            <div class="card-body">
+                {% if client.facebook_page_name and client.fb_auto_message_enabled %}
+                <div style="background:var(--green-pale);border:1px solid #C8E6C0;
+                            color:var(--green-dark);padding:10px 12px;border-radius:8px;
+                            font-size:12px;margin-bottom:12px">
+                    <strong>Connected as: {{ client.facebook_page_name }}</strong> — auto-messaging on.
+                    Go live on your Page, then press Start.
+                </div>
+                {% else %}
+                <div style="background:#FFF8EC;border:1px solid #FFE0A0;color:#7A4A00;
+                            padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:12px">
+                    Not set up yet — add your Page Access Token and turn on auto-messaging in
+                    <a href="/settings" style="color:#7A4A00;font-weight:700;text-decoration:underline">
+                        Settings → Facebook</a>.
+                </div>
+                {% endif %}
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-secondary" onclick="startFacebookDetection()"
+                            id="fb-detect-btn" style="flex:1;white-space:nowrap">
+                        Start Detection
+                    </button>
+                    <button class="btn btn-danger" onclick="stopFacebookDetection()"
+                            id="fb-stop-btn" style="white-space:nowrap;display:none">
+                        Stop
+                    </button>
+                </div>
+                <div id="fb-status"
+                     style="font-size:11px;color:var(--text-muted);margin-top:10px;text-align:center">
+                    Not running. Set up in Settings &rarr; Facebook, then Start.
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+
+        <!-- Live Comments -->
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+                <span class="card-title">Facebook Live Comments</span>
+                <span id="fb-comment-count" class="count-badge">0</span>
+            </div>
+            <div class="card-body">
+                <div class="comments-hint">
+                    Comments highlighted in green are potential buyers — click to select as buyer
+                </div>
+                <div class="comments-list" id="fb-comments-list">
+                    <div class="empty-state">
+                        Waiting for comments...<br>
+                        <small>Start detection while your Facebook Live is running</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auto-Message Log -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Auto-Message Log</span>
+            </div>
+            <div class="card-body">
+                <div class="orders-list" id="fb-message-log">
+                    <div class="empty-state">No messages sent yet</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- Hidden Print Label (shared markup used by print.js) -->
+<div id="print-label" class="print-label-container">
+    <div class="print-label-box">
+        <div class="print-brand">FAD FASHIOWN</div>
+        <div class="print-sub">Live Selling</div>
+        <div class="print-divider"></div>
+        <div class="print-buyer-label">BUYER</div>
+        <div class="print-buyer">@<span id="print-username"></span></div>
+        <div class="print-divider"></div>
+        <div class="print-row">
+            <span class="print-field-label">PRICE</span>
+            <span class="print-field-value" id="print-price"></span>
+        </div>
+        <div class="print-divider"></div>
+        <div class="print-meta" id="print-date"></div>
+        <div class="print-meta" id="print-order-id"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/print.js"></script>
+<script src="/static/facebook.js"></script>
+{% endblock %}

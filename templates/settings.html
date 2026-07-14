@@ -17,232 +17,421 @@
     {% endif %}
 {% endwith %}
 
+<style>
+    .settings-tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border);
+    }
+    .stab {
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 10px 18px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-family: inherit;
+        margin-bottom: -1px;
+    }
+    .stab:hover { color: var(--text-dark); }
+    .stab.active {
+        color: var(--green-dark);
+        border-bottom-color: var(--green-dark);
+    }
+    .stab .tab-dot {
+        display: inline-block;
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        margin-left: 6px;
+        vertical-align: middle;
+    }
+    .spane { display: none; }
+    .spane.active { display: block; }
+    .pane-note {
+        font-size: 12px;
+        color: var(--text-light);
+        background: var(--cream);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 16px;
+    }
+</style>
+
 <div style="max-width:680px">
 
+    <!-- ── TABS ── -->
+    <div class="settings-tabs">
+        <button type="button" class="stab active" data-pane="tiktok">TikTok</button>
+        <button type="button" class="stab" data-pane="facebook">
+            Facebook
+            {% if client.fb_auto_message_enabled and client.facebook_page_name %}
+            <span class="tab-dot" style="background:#2D5A1B" title="Connected & enabled"></span>
+            {% elif client.facebook_page_token %}
+            <span class="tab-dot" style="background:#E0A800" title="Needs attention"></span>
+            {% endif %}
+        </button>
+        <button type="button" class="stab" data-pane="general">General</button>
+    </div>
+
     <form method="POST" action="/settings">
-        <!-- Detection Mode -->
-        <div class="card" style="margin-bottom:20px">
-            <div class="card-header">
-                <span class="card-title">Comment Detection Mode</span>
+
+        <!-- ═══════════ TIKTOK ═══════════ -->
+        <div class="spane active" id="pane-tiktok">
+
+            <div class="pane-note">
+                Settings for <strong>TikTok Live</strong> selling. Pin detection is native on
+                TikTok — when you pin a comment, it pops up on your Dashboard automatically.
             </div>
-            <div class="card-body">
 
-                <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">
-                    Choose how the system identifies buyer comments from your live chat.
-                </p>
-
-                <!-- Mode Options -->
-                <div class="settings-mode-grid">
-
-                    <label class="mode-option {% if client.detection_mode == 'keywords' or not client.detection_mode %}selected{% endif %}">
-                        <input type="radio" name="detection_mode" value="keywords"
-                               {% if client.detection_mode == 'keywords' or not client.detection_mode %}checked{% endif %}>
-                        <div class="mode-icon">
-                            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                            </svg>
-                        </div>
-                        <div class="mode-label">Keywords Only</div>
-                        <div class="mode-desc">
-                            Highlights comments containing words like "mine", "ako", "me", etc.
-                        </div>
-                        <div class="mode-example">
-                            Example: "mine!", "ako na", "me po"
-                        </div>
-                    </label>
-
-                    <label class="mode-option {% if client.detection_mode == 'numbers' %}selected{% endif %}">
-                        <input type="radio" name="detection_mode" value="numbers"
-                               {% if client.detection_mode == 'numbers' %}checked{% endif %}>
-                        <div class="mode-icon">
-                            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <line x1="4" y1="9" x2="20" y2="9"/>
-                                <line x1="4" y1="15" x2="20" y2="15"/>
-                                <line x1="10" y1="3" x2="8" y2="21"/>
-                                <line x1="16" y1="3" x2="14" y2="21"/>
-                            </svg>
-                        </div>
-                        <div class="mode-label">Number Codes Only</div>
-                        <div class="mode-desc">
-                            Highlights comments that are number codes for your items.
-                        </div>
-                        <div class="mode-example">
-                            Example: "81", "202", "90"
-                        </div>
-                    </label>
-
-                    <label class="mode-option {% if client.detection_mode == 'both' %}selected{% endif %}">
-                        <input type="radio" name="detection_mode" value="both"
-                               {% if client.detection_mode == 'both' %}checked{% endif %}>
-                        <div class="mode-icon">
-                            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                            </svg>
-                        </div>
-                        <div class="mode-label">Both</div>
-                        <div class="mode-desc">
-                            Highlights both keyword comments and number code comments.
-                        </div>
-                        <div class="mode-example">
-                            Example: "mine", "81", "ako na 90"
-                        </div>
-                    </label>
-
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header">
+                    <span class="card-title">TikTok Account</span>
                 </div>
-
-            </div>
-        </div>
-
-        <!-- Label Template -->
-        <div class="card" style="margin-bottom:20px">
-            <div class="card-header">
-                <span class="card-title">Label / Receipt Template</span>
-            </div>
-            <div class="card-body">
-
-                <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">
-                    Customize what appears on your printed label.
-                </p>
-
-                <!-- Business Name + Tagline -->
-                <div class="form-group">
-                    <label class="form-label">Business Name on Label</label>
-                    <input type="text"
-                        name="label_title"
-                        class="form-input"
-                        value="{{ client.label_title or 'FAD FASHIOWN' }}"
-                        placeholder="Your business name"
-                        maxlength="30" />
-                    <div style="font-size:11px;color:var(--text-light);margin-top:6px">
-                        Appears at the top of your label. Max 30 characters.
+                <div class="card-body">
+                    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+                        Enter your TikTok username to enable automatic pinned comment detection.
+                        You must be live for this to work.
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label">TikTok Username</label>
+                        <input type="text"
+                            name="tiktok_username"
+                            class="form-input"
+                            value="{{ client.tiktok_username or '' }}"
+                            placeholder="yourusername (without @)" />
+                        <div style="font-size:11px;color:var(--text-light);margin-top:6px">
+                            Do not include the @ symbol. Save settings first before starting detection.
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label class="form-label">Tagline</label>
-                    <input type="text"
-                        name="label_tagline"
-                        class="form-input"
-                        value="{{ client.label_tagline or 'Live Selling' }}"
-                        placeholder="e.g. Live Selling, Online Shop"
-                        maxlength="30" />
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header">
+                    <span class="card-title">Chrome Extension</span>
                 </div>
+                <div class="card-body">
+                    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
+                        Download your Chrome extension to detect buyer comments on TikTok Live.
+                        Your account token is already pre-configured inside.
+                    </p>
+                    <a href="/download-my-extension"
+                       class="btn btn-primary"
+                       style="width:100%;padding:14px;text-align:center;display:block">
+                        Download Chrome Extension
+                    </a>
+                    <div style="font-size:11px;color:var(--text-light);margin-top:10px;text-align:center">
+                        After downloading, unzip and load in Chrome via chrome://extensions
+                    </div>
+                </div>
+            </div>
 
-                <!-- Show/Hide Options -->
-                <div class="form-group">
-                    <label class="form-label">Show on Label</label>
-                    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+        </div>
+
+
+        <!-- ═══════════ FACEBOOK ═══════════ -->
+        <div class="spane" id="pane-facebook">
+
+            <div class="pane-note">
+                Settings for <strong>Facebook Live</strong> selling and the Messenger
+                auto-messenger. Run your lives from the
+                <a href="/facebook" style="color:var(--green-dark);font-weight:600">Facebook Live</a>
+                page. You must broadcast from the Facebook <strong>Page</strong>, not a personal profile.
+            </div>
+
+            <!-- Connection -->
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header">
+                    <span class="card-title">Connection</span>
+                </div>
+                <div class="card-body">
+
+                    {% if client.facebook_page_name %}
+                    <div style="background:var(--green-pale);border:1px solid #C8E6C0;
+                                color:var(--green-dark);padding:10px 12px;border-radius:8px;
+                                font-size:13px;margin-bottom:16px">
+                        <strong>Connected as: {{ client.facebook_page_name }}</strong>
+                        <div style="font-size:11px;opacity:0.8;margin-top:2px">
+                            Page ID {{ client.facebook_page_id }} — detected from your token
+                        </div>
+                    </div>
+                    {% elif client.facebook_page_token %}
+                    <div style="background:#FDECEC;border:1px solid #F5C6C6;color:#C0392B;
+                                padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:16px">
+                        <strong>Token saved but not verified.</strong>
+                        <div style="font-size:11px;margin-top:2px">
+                            Facebook did not accept it. Re-paste a valid long-lived Page Access Token.
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
+                        Paste your Page Access Token — that's the only thing we need. Your Page,
+                        and each live broadcast, are detected automatically.
+                    </p>
+
+                    <div class="form-group">
+                        <label class="form-label">Page Access Token</label>
+                        <input type="password" name="facebook_page_token" class="form-input"
+                               autocomplete="off"
+                               placeholder="{% if client.facebook_page_token %}Leave blank to keep current token{% else %}Paste your long-lived Page Access Token{% endif %}" />
+                        <div style="font-size:11px;color:var(--text-light);margin-top:6px">
+                            Stored securely and never displayed again. Leave blank to keep the
+                            existing token. Generated once at developers.facebook.com — not
+                            something you create for each live.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Automation -->
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header">
+                    <span class="card-title">Auto-Messenger</span>
+                </div>
+                <div class="card-body">
+
+                    <div class="form-group">
                         <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-                            <input type="checkbox"
-                                name="label_show_order_id"
-                                {% if client.label_show_order_id != False %}checked{% endif %} />
-                            <span style="font-size:13px">Order Number (e.g. Order #42)</span>
+                            <input type="checkbox" name="fb_auto_message_enabled"
+                                   {% if client.fb_auto_message_enabled %}checked{% endif %} />
+                            <span style="font-size:13px;font-weight:600">
+                                Enable Facebook auto-messaging
+                            </span>
                         </label>
-                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-                            <input type="checkbox"
-                                name="label_show_datetime"
-                                {% if client.label_show_datetime != False %}checked{% endif %} />
-                            <span style="font-size:13px">Date & Time</span>
-                        </label>
+                        <div style="font-size:11px;color:var(--text-light);margin-top:6px">
+                            Off by default. Detection cannot start unless this is on and a valid
+                            Page Access Token is saved.
+                        </div>
                     </div>
-                </div>
 
-                <!-- Template Style -->
-                <div class="form-group">
-                    <label class="form-label">Label Style</label>
-                    <div class="settings-mode-grid" style="margin-top:10px">
-
-                        <label class="mode-option {% if client.label_template == 'classic' or not client.label_template %}selected{% endif %}">
-                            <input type="radio" name="label_template" value="classic"
-                                {% if client.label_template == 'classic' or not client.label_template %}checked{% endif %}>
-                            <div class="mode-label">Classic</div>
-                            <div class="mode-desc">Traditional receipt with dividers and full details.</div>
-                            <div class="label-preview">
-                                <div class="lp-title">YOUR SHOP</div>
-                                <div class="lp-sub">Live Selling</div>
-                                <div class="lp-div"></div>
-                                <div class="lp-buyer">@username</div>
-                                <div class="lp-price">₱99.00</div>
-                            </div>
-                        </label>
-
-                        <label class="mode-option {% if client.label_template == 'minimal' %}selected{% endif %}">
-                            <input type="radio" name="label_template" value="minimal"
-                                {% if client.label_template == 'minimal' %}checked{% endif %}>
-                            <div class="mode-label">Minimal</div>
-                            <div class="mode-desc">Clean and simple. Just the essentials.</div>
-                            <div class="label-preview">
-                                <div class="lp-title" style="font-size:9px">YOUR SHOP</div>
-                                <div class="lp-buyer" style="font-size:13px;margin:4px 0">@username</div>
-                                <div class="lp-price">₱99.00</div>
-                            </div>
-                        </label>
-
-                        <label class="mode-option {% if client.label_template == 'bold' %}selected{% endif %}">
-                            <input type="radio" name="label_template" value="bold"
-                                {% if client.label_template == 'bold' %}checked{% endif %}>
-                            <div class="mode-label">Bold</div>
-                            <div class="mode-desc">Large text, high visibility for fast packing.</div>
-                            <div class="label-preview">
-                                <div style="background:#2d5016;color:white;padding:2px;font-size:7px;text-align:center;font-weight:900">YOUR SHOP</div>
-                                <div class="lp-buyer" style="font-size:14px;font-weight:900;margin:4px 0">@username</div>
-                                <div style="font-size:14px;font-weight:900">₱99.00</div>
-                            </div>
-                        </label>
-
+                    <div class="form-group">
+                        <label class="form-label">Batch Window</label>
+                        <select name="fb_message_delay" class="form-input">
+                            {% set delay = client.fb_message_delay or 4 %}
+                            <option value="3" {% if delay == 3 %}selected{% endif %}>3 minutes</option>
+                            <option value="4" {% if delay == 4 %}selected{% endif %}>4 minutes (default)</option>
+                            <option value="5" {% if delay == 5 %}selected{% endif %}>5 minutes</option>
+                        </select>
+                        <div style="font-size:11px;color:var(--text-light);margin-top:6px">
+                            How long to wait after a buyer's last win before sending their combined
+                            message. The timer resets each time they win again.
+                        </div>
                     </div>
-                </div>
 
+                    <div class="form-group">
+                        <label class="form-label">Message Template (Tagalog)</label>
+                        <textarea name="fb_message_template" class="form-input" rows="9"
+                                  style="resize:vertical;font-family:inherit;line-height:1.5"
+                                  placeholder="Leave blank to use the default template">{{ client.fb_message_template or default_fb_template }}</textarea>
+                        <div style="font-size:11px;color:var(--text-light);margin-top:6px">
+                            Placeholders: <code>{buyer_name}</code>, <code>{items}</code>,
+                            <code>{total}</code>, <code>{timestamp}</code>.
+                            The item list, total, and single-vs-multiple-item rule are filled in
+                            automatically — for one item, the total line is omitted.
+                        </div>
+                    </div>
+
+                </div>
             </div>
+
         </div>
 
-        <!-- TikTok Account -->
-        <div class="card" style="margin-bottom:20px">
-            <div class="card-header">
-                <span class="card-title">TikTok Account</span>
+
+        <!-- ═══════════ GENERAL (BOTH PLATFORMS) ═══════════ -->
+        <div class="spane" id="pane-general">
+
+            <div class="pane-note">
+                These apply to <strong>both TikTok and Facebook</strong> — the same buyer-detection
+                rules highlight comments on either platform, and both print the same label.
             </div>
-            <div class="card-body">
-                <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
-                    Enter your TikTok username to enable automatic pinned comment detection.
-                    You must be live for this to work.
-                </p>
-                <div class="form-group">
-                    <label class="form-label">TikTok Username</label>
-                    <input type="text"
-                        name="tiktok_username"
-                        class="form-input"
-                        value="{{ client.tiktok_username or '' }}"
-                        placeholder="yourusername (without @)" />
-                    <div style="font-size:11px;color:var(--text-light);margin-top:6px">
-                        Do not include the @ symbol. Save settings first before starting detection.
+
+            <!-- Detection Mode -->
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header">
+                    <span class="card-title">Comment Detection Mode</span>
+                </div>
+                <div class="card-body">
+
+                    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">
+                        Choose how the system identifies buyer comments from your live chat.
+                    </p>
+
+                    <div class="settings-mode-grid">
+
+                        <label class="mode-option {% if client.detection_mode == 'keywords' or not client.detection_mode %}selected{% endif %}">
+                            <input type="radio" name="detection_mode" value="keywords"
+                                   {% if client.detection_mode == 'keywords' or not client.detection_mode %}checked{% endif %}>
+                            <div class="mode-icon">
+                                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                            </div>
+                            <div class="mode-label">Keywords Only</div>
+                            <div class="mode-desc">
+                                Highlights comments containing words like "mine", "ako", "me", etc.
+                            </div>
+                            <div class="mode-example">
+                                Example: "mine!", "ako na", "me po"
+                            </div>
+                        </label>
+
+                        <label class="mode-option {% if client.detection_mode == 'numbers' %}selected{% endif %}">
+                            <input type="radio" name="detection_mode" value="numbers"
+                                   {% if client.detection_mode == 'numbers' %}checked{% endif %}>
+                            <div class="mode-icon">
+                                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <line x1="4" y1="9" x2="20" y2="9"/>
+                                    <line x1="4" y1="15" x2="20" y2="15"/>
+                                    <line x1="10" y1="3" x2="8" y2="21"/>
+                                    <line x1="16" y1="3" x2="14" y2="21"/>
+                                </svg>
+                            </div>
+                            <div class="mode-label">Number Codes Only</div>
+                            <div class="mode-desc">
+                                Highlights comments that are number codes for your items.
+                            </div>
+                            <div class="mode-example">
+                                Example: "81", "202", "90"
+                            </div>
+                        </label>
+
+                        <label class="mode-option {% if client.detection_mode == 'both' %}selected{% endif %}">
+                            <input type="radio" name="detection_mode" value="both"
+                                   {% if client.detection_mode == 'both' %}checked{% endif %}>
+                            <div class="mode-icon">
+                                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                </svg>
+                            </div>
+                            <div class="mode-label">Both</div>
+                            <div class="mode-desc">
+                                Highlights both keyword comments and number code comments.
+                            </div>
+                            <div class="mode-example">
+                                Example: "mine", "81", "ako na 90"
+                            </div>
+                        </label>
+
                     </div>
+
                 </div>
             </div>
+
+            <!-- Label Template -->
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header">
+                    <span class="card-title">Label / Receipt Template</span>
+                </div>
+                <div class="card-body">
+
+                    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">
+                        Customize what appears on your printed label.
+                    </p>
+
+                    <div class="form-group">
+                        <label class="form-label">Business Name on Label</label>
+                        <input type="text"
+                            name="label_title"
+                            class="form-input"
+                            value="{{ client.label_title or 'FAD FASHIOWN' }}"
+                            placeholder="Your business name"
+                            maxlength="30" />
+                        <div style="font-size:11px;color:var(--text-light);margin-top:6px">
+                            Appears at the top of your label. Max 30 characters.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Tagline</label>
+                        <input type="text"
+                            name="label_tagline"
+                            class="form-input"
+                            value="{{ client.label_tagline or 'Live Selling' }}"
+                            placeholder="e.g. Live Selling, Online Shop"
+                            maxlength="30" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Show on Label</label>
+                        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+                            <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                                <input type="checkbox"
+                                    name="label_show_order_id"
+                                    {% if client.label_show_order_id != False %}checked{% endif %} />
+                                <span style="font-size:13px">Order Number (e.g. Order #42)</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                                <input type="checkbox"
+                                    name="label_show_datetime"
+                                    {% if client.label_show_datetime != False %}checked{% endif %} />
+                                <span style="font-size:13px">Date & Time</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Label Style</label>
+                        <div class="settings-mode-grid" style="margin-top:10px">
+
+                            <label class="mode-option {% if client.label_template == 'classic' or not client.label_template %}selected{% endif %}">
+                                <input type="radio" name="label_template" value="classic"
+                                    {% if client.label_template == 'classic' or not client.label_template %}checked{% endif %}>
+                                <div class="mode-label">Classic</div>
+                                <div class="mode-desc">Traditional receipt with dividers and full details.</div>
+                                <div class="label-preview">
+                                    <div class="lp-title">YOUR SHOP</div>
+                                    <div class="lp-sub">Live Selling</div>
+                                    <div class="lp-div"></div>
+                                    <div class="lp-buyer">@username</div>
+                                    <div class="lp-price">₱99.00</div>
+                                </div>
+                            </label>
+
+                            <label class="mode-option {% if client.label_template == 'minimal' %}selected{% endif %}">
+                                <input type="radio" name="label_template" value="minimal"
+                                    {% if client.label_template == 'minimal' %}checked{% endif %}>
+                                <div class="mode-label">Minimal</div>
+                                <div class="mode-desc">Clean and simple. Just the essentials.</div>
+                                <div class="label-preview">
+                                    <div class="lp-title" style="font-size:9px">YOUR SHOP</div>
+                                    <div class="lp-buyer" style="font-size:13px;margin:4px 0">@username</div>
+                                    <div class="lp-price">₱99.00</div>
+                                </div>
+                            </label>
+
+                            <label class="mode-option {% if client.label_template == 'bold' %}selected{% endif %}">
+                                <input type="radio" name="label_template" value="bold"
+                                    {% if client.label_template == 'bold' %}checked{% endif %}>
+                                <div class="mode-label">Bold</div>
+                                <div class="mode-desc">Large text, high visibility for fast packing.</div>
+                                <div class="label-preview">
+                                    <div style="background:#2d5016;color:white;padding:2px;font-size:7px;text-align:center;font-weight:900">YOUR SHOP</div>
+                                    <div class="lp-buyer" style="font-size:14px;font-weight:900;margin:4px 0">@username</div>
+                                    <div style="font-size:14px;font-weight:900">₱99.00</div>
+                                </div>
+                            </label>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
         </div>
 
-        <!-- Save Button -->
+
+        <!-- Save Button (saves all three tabs) -->
         <button type="submit" class="btn btn-primary" style="width:100%;padding:14px">
             Save Settings
         </button>
-
-        <div class="card" style="margin-top:20px">
-            <div class="card-header">
-                <span class="card-title">Chrome Extension</span>
-            </div>
-            <div class="card-body">
-                <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
-                    Download your Chrome extension to detect buyer comments on TikTok Live.
-                    Your account token is already pre-configured inside.
-                </p>
-                <a href="/download-my-extension"
-                class="btn btn-primary"
-                style="width:100%;padding:14px;text-align:center;display:block">
-                    Download Chrome Extension
-                </a>
-                <div style="font-size:11px;color:var(--text-light);margin-top:10px;text-align:center">
-                    After downloading, unzip and load in Chrome via chrome://extensions
-                </div>
-            </div>
+        <div style="font-size:11px;color:var(--text-light);margin-top:8px;text-align:center">
+            Saves every tab at once.
         </div>
 
     </form>
@@ -253,16 +442,34 @@
 
 {% block scripts %}
 <script>
+// ── SETTINGS TABS ──
+document.querySelectorAll('.stab').forEach(tab => {
+    tab.addEventListener('click', function () {
+        document.querySelectorAll('.stab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.spane').forEach(p => p.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById('pane-' + this.dataset.pane).classList.add('active');
+        // Remember the tab across a save/redirect
+        try { localStorage.setItem('fadSettingsTab', this.dataset.pane); } catch (e) {}
+    });
+});
+
+// Restore the last-used tab (so saving Facebook settings doesn't dump you on TikTok)
+document.addEventListener('DOMContentLoaded', function () {
+    let saved = null;
+    try { saved = localStorage.getItem('fadSettingsTab'); } catch (e) {}
+    if (saved && document.getElementById('pane-' + saved)) {
+        document.querySelector('.stab[data-pane="' + saved + '"]').click();
+    }
+});
+
 // Highlight selected mode option
 document.querySelectorAll('.mode-option input[type="radio"]').forEach(radio => {
     radio.addEventListener('change', function() {
-        // Find the parent grid container
         const grid = this.closest('.settings-mode-grid');
-        // Only remove selected within THIS grid
         grid.querySelectorAll('.mode-option').forEach(opt => {
             opt.classList.remove('selected');
         });
-        // Add selected to clicked option
         this.closest('.mode-option').classList.add('selected');
     });
 });

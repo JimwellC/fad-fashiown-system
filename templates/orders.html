@@ -74,10 +74,12 @@
             <tr>
                 <th>Order #</th>
                 <th>Buyer</th>
+                <th>Platform</th>
                 <th>Item</th>
                 <th>Price</th>
                 <th>Date & Time</th>
                 <th>Status</th>
+                <th>Message</th>
                 <th></th>
             </tr>
         </thead>
@@ -86,6 +88,13 @@
             <tr id="order-row-{{ order.id }}">
                 <td class="td-id">#{{ order.id }}</td>
                 <td class="td-buyer">@{{ order.buyer_username }}</td>
+                <td>
+                    {% if order.platform == 'facebook' %}
+                    <span class="badge" style="background:#E7F0FF;color:#1877F2;border:1px solid #B9D4FF">Facebook</span>
+                    {% else %}
+                    <span class="badge" style="background:#F0EBE0;color:var(--text-muted);border:1px solid var(--border)">TikTok</span>
+                    {% endif %}
+                </td>
                 <td class="td-item">{{ order.item_name }}</td>
                 <td class="td-price">₱{{ "%.2f"|format(order.price) }}</td>
                 <td class="td-time">
@@ -95,6 +104,19 @@
                     </span>
                 </td>
                 <td><span class="badge badge-success">Printed</span></td>
+                <td>
+                    {% if order.platform == 'facebook' %}
+                        {% if order.message_sent %}
+                        <span class="badge badge-success">Sent</span>
+                        {% elif order.message_failed %}
+                        <span class="badge" style="background:#FDECEC;color:#C0392B;border:1px solid #F5C6C6">Failed</span>
+                        {% else %}
+                        <span class="badge" style="background:#FFF8EC;color:#7A4A00;border:1px solid #FFE0A0">Pending</span>
+                        {% endif %}
+                    {% else %}
+                        <span style="color:var(--text-light)">—</span>
+                    {% endif %}
+                </td>
                 <td>
                     <button 
                         class="btn-delete-order" 

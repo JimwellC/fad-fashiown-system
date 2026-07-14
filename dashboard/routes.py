@@ -324,12 +324,66 @@ def settings():
         tiktok_username = request.form.get('tiktok_username', '').strip()
         current_user.tiktok_username = tiktok_username.replace('@', '')
 
+        # ── Facebook tab ──
+        # The Page Access Token is the ONLY connection input: the Page ID, Page
+        # name, and each live broadcast are all detected from it.
+        # Token is write-only — a blank submit keeps the existing token.
+        from api.facebook_routes import resolve_page_from_token
+
+        fb_token = request.form.get('facebook_page_token', '').strip()
+        if fb_token:
+            current_user.facebook_page_token = fb_token
+            page_id, page_name, err = resolve_page_from_token(fb_token)
+            if page_id:
+                current_user.facebook_page_id = page_id
+                current_user.facebook_page_name = page_name
+                flash(f'Connected as: {page_name}', 'success')
+            else:
+                current_user.facebook_page_id = None
+                current_user.facebook_page_name = None
+                flash(f'Token saved, but Facebook rejected it: {err}', 'error')
+
+        current_user.fb_auto_message_enabled = (
+            request.form.get('fb_auto_message_enabled') == 'on'
+        )
+
+        try:
+            fb_delay = int(request.form.get('fb_message_delay', 4))
+        except (TypeError, ValueError):
+            fb_delay = 4
+        current_user.fb_message_delay = fb_delay if fb_delay in (3, 4, 5) else 4
+
+        fb_template = request.form.get('fb_message_template', '').strip()
+        current_user.fb_message_template = fb_template or None
+
         db.session.commit()
-        flash('Settings saved!', 'success')
+        if not fb_token:
+            flash('Settings saved!', 'success')
         return redirect(url_for('dashboard.settings'))
 
+    from fb_defaults import DEFAULT_FB_TEMPLATE
     return render_template(
         'settings.html',
+        client=current_user,
+        business_name=current_user.business_name,
+        default_fb_template=DEFAULT_FB_TEMPLATE
+    )
+
+
+@dashboard.route('/facebook')
+@login_required
+def facebook_live():
+    """Facebook Live console — the live-selling workspace only (detection,
+    comments, buyer, price, print, auto-message log).
+
+    All Facebook CONFIGURATION lives in Settings → Facebook, so the TikTok and
+    Facebook setups sit side by side in one predictable place.
+    """
+    if current_user.is_admin:
+        return redirect(url_for('auth.admin_panel'))
+
+    return render_template(
+        'facebook.html',
         client=current_user,
         business_name=current_user.business_name
     )
@@ -359,6 +413,8 @@ def client_settings():
         'label_template': client.label_template or 'classic',
         'label_show_order_id': client.label_show_order_id if client.label_show_order_id is not None else True,
         'label_show_datetime': client.label_show_datetime if client.label_show_datetime is not None else True,
+        # Non-secret FB flag only. The Page token/template are never exposed here.
+        'fb_auto_message_enabled': bool(client.fb_auto_message_enabled),
     })
 
 @dashboard.route('/download-my-extension')

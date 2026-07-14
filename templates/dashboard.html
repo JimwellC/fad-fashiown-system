@@ -10,6 +10,9 @@
 {% block topbar_right %}
 <span id="connection-status" class="status-pill disconnected">Connecting...</span>
 <span id="detection-status" class="status-pill extension-off">Extension Inactive</span>
+<span class="status-pill" style="background:#F0EBE0;color:var(--text-muted);border:1px solid var(--border)">
+    TikTok
+</span>
 {% endblock %}
 
 {% block content %}
@@ -185,6 +188,13 @@
 
         <div style="font-size:36px;margin-bottom:12px">📌</div>
 
+        <div style="display:inline-block;font-size:11px;font-weight:700;
+                    letter-spacing:1px;padding:3px 10px;border-radius:10px;
+                    margin-bottom:10px;background:#F0EBE0;color:var(--text-muted);
+                    border:1px solid var(--border)">
+            TikTok
+        </div>
+
         <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;
                     color:var(--text-muted);margin-bottom:8px">
             Pinned Comment Detected
@@ -242,5 +252,6 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/print.js"></script>
 <script src="/static/app.js"></script>
 {% endblock %}
