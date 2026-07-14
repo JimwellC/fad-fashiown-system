@@ -37,37 +37,15 @@ fbSocket.on('fb_message_status', function (data) {
 
 
 // ── COMMENT LIST ──
+// renderComment (print.js) handles escaping, the 50-item cap, and click/dim.
 function addFbComment(data) {
-    const list = document.getElementById('fb-comments-list');
-    if (!list) return;
-
-    const empty = list.querySelector('.empty-state');
-    if (empty) empty.remove();
-
-    const existing = list.querySelectorAll('.comment-item');
-    if (existing.length >= 50) existing[existing.length - 1].remove();
+    renderComment('fb-comments-list', data, function (d) {
+        selectFbBuyer(d.username, d.comment_id, d.from_id);
+    });
 
     fbCommentCount++;
     const countEl = document.getElementById('fb-comment-count');
     if (countEl) countEl.textContent = fbCommentCount;
-
-    const div = document.createElement('div');
-    div.className = 'comment-item' + (data.is_buyer ? ' buyer' : '');
-    div.innerHTML = `
-        <div class="comment-username">@${escapeHtml(data.username)}</div>
-        <div class="comment-message">${escapeHtml(data.message)}</div>
-        <div class="comment-click-hint">Click to select as buyer</div>
-    `;
-
-    div.addEventListener('click', function () {
-        selectFbBuyer(data.username, data.comment_id, data.from_id);
-        document.querySelectorAll('#fb-comments-list .comment-item')
-            .forEach(el => { el.style.opacity = '0.4'; });
-        div.style.opacity = '1';
-        div.classList.add('selected');
-    });
-
-    list.insertBefore(div, list.firstChild);
 }
 
 
@@ -242,10 +220,7 @@ async function stopFacebookDetection() {
 
 // ── UI HELPERS ──
 function updateFbConnectionStatus(connected) {
-    const el = document.getElementById('fb-connection-status');
-    if (!el) return;
-    el.textContent = connected ? 'Connected' : 'Disconnected';
-    el.className = 'status-pill ' + (connected ? 'connected' : 'disconnected');
+    setConnectionStatus('fb-connection-status', connected);   // print.js
 }
 
 document.addEventListener('DOMContentLoaded', function () {

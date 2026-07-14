@@ -61,6 +61,49 @@ function escapeHtml(s) {
 }
 
 
+// ── SHARED LIVE-COMMENT RENDERER ──
+// Both consoles render comments identically: escape untrusted text, cap the list
+// at 50, highlight buyers, and dim-others on click. Keeping it here means the XSS
+// escaping and the cap can never drift apart between TikTok and Facebook.
+// onSelect(data) runs when the seller clicks a comment.
+function renderComment(listId, data, onSelect) {
+    const list = document.getElementById(listId);
+    if (!list) return;
+
+    const empty = list.querySelector('.empty-state');
+    if (empty) empty.remove();
+
+    const existing = list.querySelectorAll('.comment-item');
+    if (existing.length >= 50) existing[existing.length - 1].remove();
+
+    const div = document.createElement('div');
+    div.className = 'comment-item' + (data.is_buyer ? ' buyer' : '');
+    div.innerHTML = `
+        <div class="comment-username">@${escapeHtml(data.username)}</div>
+        <div class="comment-message">${escapeHtml(data.message)}</div>
+        <div class="comment-click-hint">Click to select as buyer</div>
+    `;
+
+    div.addEventListener('click', function () {
+        list.querySelectorAll('.comment-item').forEach(el => { el.style.opacity = '0.4'; });
+        div.style.opacity = '1';
+        div.classList.add('selected');
+        onSelect(data);
+    });
+
+    list.insertBefore(div, list.firstChild);
+}
+
+
+// ── SHARED CONNECTION-STATUS PILL ──
+function setConnectionStatus(elId, connected) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.textContent = connected ? 'Connected' : 'Disconnected';
+    el.className = 'status-pill ' + (connected ? 'connected' : 'disconnected');
+}
+
+
 // ── LABEL SETTINGS (loaded from server) ──
 let labelSettings = {
     title: 'FAD FASHIOWN',

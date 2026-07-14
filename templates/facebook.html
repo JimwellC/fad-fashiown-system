@@ -16,18 +16,6 @@
 
 {% block content %}
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            {% for category, message in messages %}
-                showToast('{{ message }}', '{{ "success" if category == "success" else "error" }}');
-            {% endfor %}
-        });
-    </script>
-    {% endif %}
-{% endwith %}
-
 <div class="dashboard-grid">
 
     <!-- LEFT PANEL -->
@@ -143,24 +131,8 @@
 </div>
 
 
-<!-- Hidden Print Label (shared markup used by print.js) -->
-<div id="print-label" class="print-label-container">
-    <div class="print-label-box">
-        <div class="print-brand">FAD FASHIOWN</div>
-        <div class="print-sub">Live Selling</div>
-        <div class="print-divider"></div>
-        <div class="print-buyer-label">BUYER</div>
-        <div class="print-buyer">@<span id="print-username"></span></div>
-        <div class="print-divider"></div>
-        <div class="print-row">
-            <span class="print-field-label">PRICE</span>
-            <span class="print-field-value" id="print-price"></span>
-        </div>
-        <div class="print-divider"></div>
-        <div class="print-meta" id="print-date"></div>
-        <div class="print-meta" id="print-order-id"></div>
-    </div>
-</div>
+<!-- Hidden Print Label (shared markup) -->
+{% include '_print_label.html' %}
 
 {% endblock %}
 

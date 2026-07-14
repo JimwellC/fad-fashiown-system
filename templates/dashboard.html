@@ -147,24 +147,8 @@
 
 </div>
 
-<!-- Hidden Print Label -->
-<div id="print-label" class="print-label-container">
-    <div class="print-label-box">
-        <div class="print-brand">FAD FASHIOWN</div>
-        <div class="print-sub">Live Selling</div>
-        <div class="print-divider"></div>
-        <div class="print-buyer-label">BUYER</div>
-        <div class="print-buyer">@<span id="print-username"></span></div>
-        <div class="print-divider"></div>
-        <div class="print-row">
-            <span class="print-field-label">PRICE</span>
-            <span class="print-field-value" id="print-price"></span>
-        </div>
-        <div class="print-divider"></div>
-        <div class="print-meta" id="print-date"></div>
-        <div class="print-meta" id="print-order-id"></div>
-    </div>
-</div>
+<!-- Hidden Print Label (shared markup) -->
+{% include '_print_label.html' %}
 
 <!-- PIN COMMENT MODAL -->
 <div id="pin-modal" style="

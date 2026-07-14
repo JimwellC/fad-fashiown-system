@@ -167,6 +167,19 @@ function showToast(message, type = 'success') {
         toast.className = 'toast hidden';
     }, 3000);
 }
+
+// ── FLASH → TOAST (every page extending base.html) ──
+// Uses |tojson so messages containing quotes/apostrophes can't break the JS.
+document.addEventListener('DOMContentLoaded', function () {
+    const _flashes = [
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+        { msg: {{ message|tojson }}, cat: {{ category|tojson }} },
+        {% endfor %}
+    ];
+    _flashes.forEach(function (f) {
+        showToast(f.msg, f.cat === 'success' ? 'success' : 'error');
+    });
+});
 </script>
 
 <!-- ── GLOBAL MODAL ── -->

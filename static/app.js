@@ -65,54 +65,27 @@ function setBuyer(username, detectedAt) {
 
 
 // ── ADD COMMENT TO LIST ──
+// renderComment (print.js) handles escaping, the 50-item cap, and click/dim.
 function addComment(data) {
-    const list = document.getElementById('comments-list');
-    if (!list) return;
-
-    const empty = list.querySelector('.empty-state');
-    if (empty) empty.remove();
-
-    const existing = list.querySelectorAll('.comment-item');
-    if (existing.length >= 50) {
-        existing[existing.length - 1].remove();
-    }
-
-    commentCount++;
-    const countEl = document.getElementById('comment-count');
-    if (countEl) countEl.textContent = commentCount;
-
-    const div = document.createElement('div');
-    div.className = 'comment-item' + (data.is_buyer ? ' buyer' : '');
-
-    div.innerHTML = `
-        <div class="comment-username">@${escapeHtml(data.username)}</div>
-        <div class="comment-message">${escapeHtml(data.message)}</div>
-        <div class="comment-click-hint">Click to select as buyer</div>
-    `;
-
-    div.addEventListener('click', function () {
+    renderComment('comments-list', data, function (d) {
         fetch('/api/set-buyer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: data.username })
+            body: JSON.stringify({ username: d.username })
         })
         .then(res => res.json())
         .then(result => {
             if (result.success) {
-                showToast('Buyer set: @' + data.username, 'success');
-                document.querySelectorAll('.comment-item').forEach(el => {
-                    el.style.opacity = '0.4';
-                });
-                div.style.opacity = '1';
-                div.classList.add('selected');
-                // Focus price for fast entry
-                document.getElementById('price').focus();
+                showToast('Buyer set: @' + d.username, 'success');
+                document.getElementById('price').focus();  // fast entry
             }
         })
         .catch(err => showToast('Error setting buyer', 'error'));
     });
 
-    list.insertBefore(div, list.firstChild);
+    commentCount++;
+    const countEl = document.getElementById('comment-count');
+    if (countEl) countEl.textContent = commentCount;
 }
 
 
@@ -278,14 +251,7 @@ function updateExtensionStatus(active) {
 
 // ── UI STATE HELPERS ──
 function updateConnectionStatus(connected) {
-    const el = document.getElementById('connection-status');
-    if (connected) {
-        el.textContent = 'Connected';
-        el.className = 'status-pill connected';
-    } else {
-        el.textContent = 'Disconnected';
-        el.className = 'status-pill disconnected';
-    }
+    setConnectionStatus('connection-status', connected);   // print.js
 }
 
 

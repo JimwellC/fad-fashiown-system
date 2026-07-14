@@ -1,0 +1,20 @@
+{# Hidden print-label markup. Shared by the TikTok dashboard and the Facebook
+   console — print.js fillLabelFields() targets these element ids by name, so the
+   two pages MUST use identical markup. Keep it here, included by both. #}
+<div id="print-label" class="print-label-container">
+    <div class="print-label-box">
+        <div class="print-brand">FAD FASHIOWN</div>
+        <div class="print-sub">Live Selling</div>
+        <div class="print-divider"></div>
+        <div class="print-buyer-label">BUYER</div>
+        <div class="print-buyer">@<span id="print-username"></span></div>
+        <div class="print-divider"></div>
+        <div class="print-row">
+            <span class="print-field-label">PRICE</span>
+            <span class="print-field-value" id="print-price"></span>
+        </div>
+        <div class="print-divider"></div>
+        <div class="print-meta" id="print-date"></div>
+        <div class="print-meta" id="print-order-id"></div>
+    </div>
+</div>
