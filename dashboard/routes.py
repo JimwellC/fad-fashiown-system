@@ -371,7 +371,7 @@ def settings():
         # The Page Access Token is the ONLY connection input: the Page ID, Page
         # name, and each live broadcast are all detected from it.
         # Token is write-only — a blank submit keeps the existing token.
-        from api.facebook_routes import resolve_page_from_token
+        from api.facebook_routes import resolve_page_from_token, subscribe_page_to_feed
         from fb_defaults import DEFAULT_FB_TEMPLATE
 
         fb_token = request.form.get('facebook_page_token', '').strip()
@@ -383,7 +383,14 @@ def settings():
                 current_user.facebook_page_token = fb_token
                 current_user.facebook_page_id = page_id
                 current_user.facebook_page_name = page_name
-                flash(f'Connected as: {page_name}', 'success')
+                # Subscribe the Page to comment webhooks (best-effort — events
+                # only flow once the app-level webhook callback is configured).
+                sub_ok, sub_err = subscribe_page_to_feed(current_user)
+                if sub_ok:
+                    flash(f'Connected as: {page_name} — comment webhooks subscribed.', 'success')
+                else:
+                    flash(f'Connected as: {page_name}. (Comment-webhook subscription '
+                          f'not confirmed: {sub_err})', 'success')
             else:
                 flash(f'Facebook rejected that token ({err}). '
                       f'Your existing connection was kept unchanged.', 'error')

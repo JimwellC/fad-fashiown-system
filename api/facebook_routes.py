@@ -17,13 +17,16 @@ NOTE: This is built against the EXPECTED Graph API response shapes. The exact
 field names / API version are validated against a real dev Page + test live
 stream before go-live (see GRAPH_API_VERSION and the fetch helpers).
 """
+import os
 import re
 import time
+import hmac
+import hashlib
 import threading
 from datetime import datetime
 
 import requests as req
-from flask import Blueprint, jsonify, current_app
+from flask import Blueprint, jsonify, current_app, request
 from flask_login import login_required, current_user
 
 from database import db
@@ -502,3 +505,114 @@ def status():
     with _consumers_lock:
         running = current_user.id in _consumers
     return jsonify({'running': running})
+
+
+# ──────────────────────────────────────────────────────────────────────────
+#  Webhook receiver (public) — the Live Video API `live_videos` read endpoint
+#  is gated behind App Review (error #10). Page `feed` webhooks deliver comment
+#  events using only pages_read_engagement + pages_manage_metadata, which avoids
+#  that gate. Facebook pushes here; we emit to the seller's dashboard room —
+#  same downstream flow as the polling consumer, no polling, real-time.
+# ──────────────────────────────────────────────────────────────────────────
+def subscribe_page_to_feed(client):
+    """Subscribe the client's Page to 'feed' webhooks so Facebook pushes comment
+    events to /webhooks/facebook. Best-effort; returns (ok, error)."""
+    if not (client.facebook_page_id and client.facebook_page_token):
+        return False, 'no page/token'
+    try:
+        r = req.post(
+            f'{GRAPH_BASE}/{client.facebook_page_id}/subscribed_apps',
+            params={'access_token': client.facebook_page_token},
+            data={'subscribed_fields': 'feed'},
+            timeout=HTTP_TIMEOUT,
+        )
+        body = r.json()
+        if r.status_code == 200 and body.get('success'):
+            return True, None
+        return False, body.get('error', {}).get('message', r.text)
+    except Exception as e:
+        return False, str(e)
+
+
+def _verify_webhook_signature(payload_bytes, header):
+    """Verify Facebook's X-Hub-Signature-256 (HMAC-SHA256 of the raw body with
+    the App Secret). If FB_APP_SECRET isn't configured we skip (dev only)."""
+    app_secret = os.getenv('FB_APP_SECRET', '')
+    if not app_secret:
+        return True  # not configured — dev/test; can't verify
+    if not header or not header.startswith('sha256='):
+        return False
+    expected = 'sha256=' + hmac.new(
+        app_secret.encode(), payload_bytes, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(expected, header)
+
+
+@facebook.route('/webhooks/facebook', methods=['GET'])
+def facebook_webhook_verify():
+    """Facebook's subscription handshake: echo hub.challenge if the token matches."""
+    verify_token = os.getenv('FB_WEBHOOK_VERIFY_TOKEN', '')
+    mode = request.args.get('hub.mode')
+    token = request.args.get('hub.verify_token')
+    challenge = request.args.get('hub.challenge', '')
+    if mode == 'subscribe' and verify_token and token == verify_token:
+        return challenge, 200
+    return 'Forbidden', 403
+
+
+@facebook.route('/webhooks/facebook', methods=['POST'])
+def facebook_webhook_receive():
+    """Receive Page 'feed' events and push comment activity to the seller's
+    dashboard. Always returns 200 (except a bad signature) so Facebook doesn't
+    retry/disable the subscription."""
+    raw = request.get_data()
+    if not _verify_webhook_signature(raw, request.headers.get('X-Hub-Signature-256')):
+        return 'Bad signature', 403
+
+    try:
+        data = request.get_json(silent=True) or {}
+        if data.get('object') != 'page':
+            return '', 200
+
+        for entry in data.get('entry', []):
+            page_id = str(entry.get('id', ''))
+            client = Client.query.filter_by(facebook_page_id=page_id).first()
+            # Only surface comments for a client who has FB messaging enabled.
+            if not client or not client.fb_auto_message_enabled:
+                continue
+
+            mode = client.detection_mode or 'keywords'
+            keywords = [k.strip().lower() for k in
+                        (client.custom_keywords or DEFAULT_KEYWORDS).split(',') if k.strip()]
+
+            for change in entry.get('changes', []):
+                if change.get('field') != 'feed':
+                    continue
+                value = change.get('value', {}) or {}
+                if value.get('item') != 'comment' or value.get('verb') != 'add':
+                    continue
+
+                frm = value.get('from', {}) or {}
+                from_id = str(frm.get('id', '')) if frm.get('id') else None
+                # Ignore the Page's own comments (the seller replying).
+                if from_id and from_id == page_id:
+                    continue
+
+                comment_id = value.get('comment_id') or value.get('id')
+                message = value.get('message', '') or ''
+                username = frm.get('name') or 'Facebook User'
+
+                if socketio_ref:
+                    socketio_ref.emit('new_comment', {
+                        'username': username,
+                        'message': message,
+                        'is_buyer': _is_buyer(message, mode, keywords),
+                        'platform': 'facebook',
+                        'comment_id': comment_id,
+                        'from_id': from_id,
+                    }, room=f'client_{client.id}')
+    except Exception as e:
+        # Never fail the webhook — Facebook disables endpoints that error.
+        print(f'FB webhook error: {e}')
+
+    return '', 200
