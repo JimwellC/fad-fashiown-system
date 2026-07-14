@@ -105,18 +105,30 @@ def export_orders():
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        'Order ID', 'Buyer Username', 'Item Name',
-        'Price', 'Date & Time', 'Label Printed'
+        'Order ID', 'Buyer Username', 'Platform', 'Item Name',
+        'Price', 'Date & Time', 'Label Printed', 'Message Status'
     ])
 
     for order in orders:
+        platform = (order.platform or 'tiktok').capitalize()
+        if order.platform == 'facebook':
+            if order.message_sent:
+                msg_status = 'Sent'
+            elif order.message_failed:
+                msg_status = 'Failed'
+            else:
+                msg_status = 'Pending'
+        else:
+            msg_status = 'N/A'
         writer.writerow([
             order.id,
             order.buyer_username,
+            platform,
             order.item_name,
             f'₱{order.price:.2f}',
             order.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'Yes' if order.label_printed else 'No'
+            'Yes' if order.label_printed else 'No',
+            msg_status
         ])
 
     output.seek(0)
@@ -329,19 +341,21 @@ def settings():
         # name, and each live broadcast are all detected from it.
         # Token is write-only — a blank submit keeps the existing token.
         from api.facebook_routes import resolve_page_from_token
+        from fb_defaults import DEFAULT_FB_TEMPLATE
 
         fb_token = request.form.get('facebook_page_token', '').strip()
         if fb_token:
-            current_user.facebook_page_token = fb_token
+            # Validate BEFORE overwriting: a typo, or a browser autofilling the
+            # login password into this field, must not destroy a working token.
             page_id, page_name, err = resolve_page_from_token(fb_token)
             if page_id:
+                current_user.facebook_page_token = fb_token
                 current_user.facebook_page_id = page_id
                 current_user.facebook_page_name = page_name
                 flash(f'Connected as: {page_name}', 'success')
             else:
-                current_user.facebook_page_id = None
-                current_user.facebook_page_name = None
-                flash(f'Token saved, but Facebook rejected it: {err}', 'error')
+                flash(f'Facebook rejected that token ({err}). '
+                      f'Your existing connection was kept unchanged.', 'error')
 
         current_user.fb_auto_message_enabled = (
             request.form.get('fb_auto_message_enabled') == 'on'
@@ -353,12 +367,17 @@ def settings():
             fb_delay = 4
         current_user.fb_message_delay = fb_delay if fb_delay in (3, 4, 5) else 4
 
+        # Store the template ONLY if the seller customised it. The textarea is
+        # prefilled with the default, so storing that verbatim would freeze a copy
+        # and break "blank = always use the latest default".
         fb_template = request.form.get('fb_message_template', '').strip()
-        current_user.fb_message_template = fb_template or None
+        if not fb_template or fb_template == DEFAULT_FB_TEMPLATE.strip():
+            current_user.fb_message_template = None
+        else:
+            current_user.fb_message_template = fb_template
 
         db.session.commit()
-        if not fb_token:
-            flash('Settings saved!', 'success')
+        flash('Settings saved!', 'success')
         return redirect(url_for('dashboard.settings'))
 
     from fb_defaults import DEFAULT_FB_TEMPLATE

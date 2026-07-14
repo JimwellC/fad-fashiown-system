@@ -171,10 +171,10 @@ def print_label():
 
     print(f"Order saved: {username} | {item_name} | ₱{price} [{platform}]")
 
-    # ── Facebook auto-message batching (guarded; no-op for TikTok) ──
-    if platform == 'facebook' and \
-       current_user.fb_auto_message_enabled and \
-       current_user.facebook_page_token:
+    # ── Facebook auto-message batching (no-op for TikTok) ──
+    # schedule_message_for_order owns the enabled/token guard, so we only gate on
+    # platform here to avoid duplicating (and drifting from) that rule.
+    if platform == 'facebook':
         try:
             from api.facebook_routes import schedule_message_for_order
             schedule_message_for_order(

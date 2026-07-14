@@ -54,8 +54,8 @@ function addFbComment(data) {
     const div = document.createElement('div');
     div.className = 'comment-item' + (data.is_buyer ? ' buyer' : '');
     div.innerHTML = `
-        <div class="comment-username">@${data.username}</div>
-        <div class="comment-message">${data.message}</div>
+        <div class="comment-username">@${escapeHtml(data.username)}</div>
+        <div class="comment-message">${escapeHtml(data.message)}</div>
         <div class="comment-click-hint">Click to select as buyer</div>
     `;
 
@@ -167,7 +167,7 @@ function addMessageLog(data) {
     const count = (data.order_ids || []).length;
     div.innerHTML = `
         <div>
-            <div class="order-username">@${data.buyer}</div>
+            <div class="order-username">@${escapeHtml(data.buyer)}</div>
             <div class="order-id">${count} item${count === 1 ? '' : 's'} in one message</div>
         </div>
         <div>

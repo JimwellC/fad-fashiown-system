@@ -16,7 +16,7 @@ from sqlalchemy import inspect, text
 # dialect below (SQLite stores 0/1, PostgreSQL uses FALSE/TRUE).
 _FB_COLUMNS = {
     'clients': [
-        ('facebook_page_token', 'VARCHAR(255)', None),
+        ('facebook_page_token', 'TEXT', None),
         ('facebook_page_id', 'VARCHAR(64)', None),
         ('facebook_page_name', 'VARCHAR(120)', None),
         ('fb_auto_message_enabled', 'BOOLEAN', 'false'),

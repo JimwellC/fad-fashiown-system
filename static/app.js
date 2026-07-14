@@ -33,6 +33,7 @@ socket.on('buyer_detected', function (data) {
 });
 
 socket.on('order_saved', function (order) {
+    if (order.platform === 'facebook') return;   // handled by the Facebook console
     prependOrder(order);
     showToast('Order saved!', 'success');
 });
@@ -84,8 +85,8 @@ function addComment(data) {
     div.className = 'comment-item' + (data.is_buyer ? ' buyer' : '');
 
     div.innerHTML = `
-        <div class="comment-username">@${data.username}</div>
-        <div class="comment-message">${data.message}</div>
+        <div class="comment-username">@${escapeHtml(data.username)}</div>
+        <div class="comment-message">${escapeHtml(data.message)}</div>
         <div class="comment-click-hint">Click to select as buyer</div>
     `;
 

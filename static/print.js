@@ -47,6 +47,20 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
+// ── HTML ESCAPE (shared) ──
+// Comments come from arbitrary public viewers (TikTok chat / Facebook Live).
+// Any value interpolated into innerHTML must pass through this, or a crafted
+// comment runs script in the logged-in seller's session (stored XSS).
+function escapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+
 // ── LABEL SETTINGS (loaded from server) ──
 let labelSettings = {
     title: 'FAD FASHIOWN',

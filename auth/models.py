@@ -37,7 +37,7 @@ class Client(UserMixin, db.Model):
     # ── Facebook Auto-Messenger settings ──
     # NOTE: columns added to the live DB via migrations.migrate_fb_columns()
     # (ALTER TABLE), NOT db.create_all(). See migrations.py.
-    facebook_page_token = db.Column(db.String(255))       # long-lived Page Access Token (secret)
+    facebook_page_token = db.Column(db.Text)              # long-lived Page Access Token (secret; can exceed 255 chars)
     facebook_page_id = db.Column(db.String(64))           # FB Page ID (auto-resolved from the token)
     facebook_page_name = db.Column(db.String(120))        # Page name, for "Connected as: ..." display
     fb_auto_message_enabled = db.Column(db.Boolean, default=False)

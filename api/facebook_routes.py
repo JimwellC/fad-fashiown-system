@@ -18,6 +18,7 @@ field names / API version are validated against a real dev Page + test live
 stream before go-live (see GRAPH_API_VERSION and the fetch helpers).
 """
 import re
+import time
 import threading
 from datetime import datetime
 
@@ -31,12 +32,27 @@ from fb_defaults import DEFAULT_FB_TEMPLATE
 
 facebook = Blueprint('facebook', __name__)
 
+
+@facebook.before_request
+def _block_until_password_changed():
+    """Match the api/dashboard blueprints: a client forced to change their
+    password must not be able to drive Facebook detection with a stale session."""
+    if current_user.is_authenticated and \
+       not current_user.is_admin and \
+       getattr(current_user, 'must_change_password', False):
+        return jsonify({"error": "Password change required"}), 403
+
 # ── Graph API config (validate/bump when testing against the dev Page) ──
 GRAPH_API_VERSION = 'v21.0'
 GRAPH_BASE = f'https://graph.facebook.com/{GRAPH_API_VERSION}'
 POLL_INTERVAL_SECONDS = 3        # live-comments poll cadence (SSE is a later option)
+COMMENT_PAGE_SIZE = 50           # newest N comments fetched each poll
+LIVE_RECHECK_POLLS = 10          # re-check the live video every ~30s (end / new live)
 SEND_RETRY_DELAY_SECONDS = 30    # per handoff: retry once after 30s, then fail
 HTTP_TIMEOUT = 15
+# Fallback buyer keywords — MUST match the TikTok default (dashboard.client_settings)
+# so a comment gets the same green highlight on either platform.
+DEFAULT_KEYWORDS = 'mine,ako,akin,ko,me,samin'
 
 socketio_ref = None
 
@@ -131,12 +147,23 @@ def _resolve_live_video_id(page_id, token):
 
 
 def _fetch_comments(live_video_id, token):
-    """Return the list of comment dicts for a live video (expected shape:
-    {id, from:{id,name}, message, created_time})."""
+    """Return the newest comments for a live video (expected shape:
+    {id, from:{id,name}, message, created_time}).
+
+    order=reverse_chronological puts the NEWEST comments first, so new comments
+    always land on page 1. Without this, Graph defaults to the oldest 25 and the
+    same stale page is returned forever once a live passes 25 comments — the
+    console would silently stop seeing new buyers.
+    """
     try:
         r = req.get(
             f'{GRAPH_BASE}/{live_video_id}/comments',
-            params={'fields': 'id,from,message,created_time', 'access_token': token},
+            params={
+                'fields': 'id,from,message,created_time',
+                'order': 'reverse_chronological',
+                'limit': COMMENT_PAGE_SIZE,
+                'access_token': token,
+            },
             timeout=HTTP_TIMEOUT,
         )
         return r.json().get('data', [])
@@ -151,6 +178,7 @@ def _fetch_comments(live_video_id, token):
 def _consume_loop(app, client_id):
     seen = set()
     live_video_id = None
+    polls_since_recheck = 0
 
     with _consumers_lock:
         info = _consumers.get(client_id)
@@ -170,16 +198,25 @@ def _consume_loop(app, client_id):
             page_id = client.facebook_page_id
             mode = client.detection_mode or 'keywords'
             keywords = [k.strip().lower() for k in
-                        (client.custom_keywords or 'mine').split(',') if k.strip()]
+                        (client.custom_keywords or DEFAULT_KEYWORDS).split(',') if k.strip()]
+
+        # (Re)discover the Page's current LIVE broadcast. We re-check periodically
+        # so we notice a live that ENDED (stop polling a dead video) or a NEW live
+        # that started — otherwise we'd poll the first video's stale comments forever.
+        if not live_video_id or polls_since_recheck >= LIVE_RECHECK_POLLS:
+            polls_since_recheck = 0
+            current = _resolve_live_video_id(page_id, token)
+            if current != live_video_id:
+                if current:
+                    print(f'FB: watching live video {current}')
+                    seen.clear()   # new broadcast → fresh dedup set
+                live_video_id = current
+        polls_since_recheck += 1
 
         if not live_video_id:
-            # Auto-discover the Page's current LIVE broadcast. If none is running
-            # yet we simply keep polling, so Start can be pressed before going live.
-            live_video_id = _resolve_live_video_id(page_id, token)
-            if not live_video_id:
-                stop.wait(POLL_INTERVAL_SECONDS)
-                continue
-            print(f'FB: watching live video {live_video_id} (auto-discovered)')
+            # Nothing live yet (Start can be pressed before going live). Keep waiting.
+            stop.wait(POLL_INTERVAL_SECONDS)
+            continue
 
         for c in _fetch_comments(live_video_id, token):
             cid = c.get('id')
@@ -233,8 +270,14 @@ def stop_fb_consumer(app, client_id):
         info = _consumers.get(client_id)
         if info:
             info['stop'].set()
-    # Any batched messages still pending are flushed immediately (live ended).
-    flush_pending_for_client(app, client_id)
+    # Flush pending batches in the BACKGROUND so the Stop request returns
+    # immediately. A failed send (e.g. expired token) otherwise blocks ~60s each
+    # (15s attempt + 30s retry sleep + 15s retry), and batches flush one by one —
+    # a live with several buyers could hang the request for minutes.
+    if socketio_ref is not None:
+        socketio_ref.start_background_task(flush_pending_for_client, app, client_id)
+    else:
+        flush_pending_for_client(app, client_id)
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -248,7 +291,10 @@ def schedule_message_for_order(app, client, order):
     """
     if not (client.fb_auto_message_enabled and client.facebook_page_token):
         return
-    buyer_key = order.buyer_username
+    # Key the batch on the buyer's STABLE Facebook user id (stored in buyer_psid,
+    # taken from the comment's from.id), NOT the display name — two different
+    # buyers can share a name, which would merge them into one wrong message.
+    buyer_key = order.buyer_psid or f'name:{order.buyer_username}'
     delay = (client.fb_message_delay or 4) * 60
 
     with _pending_lock:
@@ -257,10 +303,12 @@ def schedule_message_for_order(app, client, order):
         if entry and entry.get('timer'):
             entry['timer'].cancel()          # reset window on each new win
         if not entry:
-            entry = {'timer': None, 'order_ids': [], 'comment_id': None, 'psid': None}
+            entry = {'timer': None, 'order_ids': [], 'comment_id': None,
+                     'psid': None, 'buyer_name': order.buyer_username}
             by_buyer[buyer_key] = entry
 
         entry['order_ids'].append(order.id)
+        entry['buyer_name'] = order.buyer_username      # latest display name (for the toast)
         if order.fb_comment_id:
             entry['comment_id'] = order.fb_comment_id   # keep latest comment id
         if order.buyer_psid:
@@ -292,7 +340,7 @@ def _fire_batch(app, client_id, buyer_key):
 
         if socketio_ref:
             socketio_ref.emit('fb_message_status', {
-                'buyer': buyer_key,
+                'buyer': entry.get('buyer_name', 'buyer'),
                 'sent': bool(ok),
                 'error': err,
                 'order_ids': entry['order_ids'],
@@ -310,6 +358,39 @@ def flush_pending_for_client(app, client_id):
                 entry['timer'].cancel()
     for k in keys:
         _fire_batch(app, client_id, k)
+
+
+def recover_pending_batches(app):
+    """Re-queue Facebook orders whose auto-message never sent (e.g. the worker
+    restarted mid batch-window). In-memory timers don't survive a restart, so
+    without this a redeploy silently drops the buyer's message.
+
+    OPT-IN via FB_RECOVER_ON_BOOT=1 so that merely importing the app (management
+    scripts, tests, the local runner) never fires real Facebook sends.
+    """
+    import os
+    if os.getenv('FB_RECOVER_ON_BOOT') != '1':
+        return
+    count = 0
+    with app.app_context():
+        pending = Order.query.filter(
+            Order.platform == 'facebook',
+            Order.message_sent.is_(False),
+            Order.message_failed.is_(False),
+        ).all()
+        by_client = {}
+        for o in pending:
+            by_client.setdefault(o.client_id, []).append(o)
+        for client_id, orders in by_client.items():
+            client = db.session.get(Client, client_id)
+            if not (client and client.fb_auto_message_enabled
+                    and client.facebook_page_token):
+                continue
+            for o in orders:
+                schedule_message_for_order(app, client, o)
+                count += 1
+    if count:
+        print(f'FB: re-queued {count} pending auto-message order(s) after restart')
 
 
 def render_message(template, buyer_name, orders, when):
@@ -337,7 +418,6 @@ def render_message(template, buyer_name, orders, when):
 
 def _send_consolidated(client, orders, comment_id, psid):
     """Send one message; retry once after 30s on failure. Returns (ok, error)."""
-    import time
     msg = render_message(
         client.fb_message_template, orders[0].buyer_username, orders,
         orders[-1].timestamp or datetime.utcnow(),
@@ -373,6 +453,11 @@ def _do_send(client, message, comment_id, psid):
     else:
         err = 'no comment_id available'
 
+    # Fallback: Send API by PSID. NOTE: a live comment's from.id is generally NOT
+    # a messaging PSID, so this rarely succeeds today — it exists for the future
+    # webhook-sourced PSID path. Keep the primary (private_replies) error if this
+    # also fails, since that's the actionable one.
+    primary_err = err
     if psid and client.facebook_page_id:
         try:
             r = req.post(
@@ -386,11 +471,10 @@ def _do_send(client, message, comment_id, psid):
             body = r.json()
             if r.status_code == 200 and 'error' not in body:
                 return True, None
-            err = body.get('error', {}).get('message', r.text)
-        except Exception as e:
-            err = str(e)
+        except Exception:
+            pass
 
-    return False, err
+    return False, primary_err
 
 
 # ──────────────────────────────────────────────────────────────────────────

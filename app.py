@@ -96,8 +96,13 @@ def create_app():
 
     # ── PASS SOCKETIO TO API ──
     set_socketio(socketio)
-    from api.facebook_routes import set_socketio as set_fb_socketio
+    from api.facebook_routes import (
+        set_socketio as set_fb_socketio, recover_pending_batches
+    )
     set_fb_socketio(socketio)
+    # Re-queue any Facebook auto-messages orphaned by a restart (opt-in via
+    # FB_RECOVER_ON_BOOT=1 so imports/tests never trigger real sends).
+    recover_pending_batches(app)
 
     return app
 
