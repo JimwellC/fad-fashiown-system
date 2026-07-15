@@ -1,9 +1,27 @@
+# Python
 venv/
-database/orders.db
 __pycache__/
 *.pyc
 *.pyo
+
+# OS / editor
 .DS_Store
 .vscode/
-config_local.pycerts/private-key.pem
+
+# Secrets — never commit (see .env.example for the template)
+.env
+.env.*
+!.env.example
+
+# QZ Tray signing key (secret; still tracked pending an env-var refactor —
+# see docs. Listed here so it isn't re-added once that's done.)
+certs/private-key.pem
+
+# Local databases
+database/orders.db
+
+# Node
 tiktok-listener/node_modules/
+
+# Local config
+config_local.py
