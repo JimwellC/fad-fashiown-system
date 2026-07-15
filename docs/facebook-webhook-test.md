@@ -128,6 +128,32 @@ Our app does this for you:
 
 ---
 
+## Alternative: validate without going live
+
+Can't broadcast right now? The `feed` webhook fires on comments on **any** Page
+content, so you can confirm the whole pipeline without a live:
+
+**Option A — comment on a normal Page post (recommended).** Do Steps 1–5, then:
+1. Make any post on your Page.
+2. Comment on it **from a personal account** (not *as* the Page — the receiver
+   ignores the Page's own comments).
+3. The comment should appear in the **Facebook Live Comments** panel. This proves
+   the full path: subscription → delivery → signature → receiver → dashboard.
+
+**Option B — Facebook's "Test" button.** App Dashboard → Webhooks → Page →
+`feed` → **Test** sends a sample payload to your callback URL. Confirms the
+endpoint is reachable and parses (visible in the ngrok log, returns `200`), but
+the sample's fake Page ID won't match your account, so it won't reach the
+dashboard.
+
+**What this proves:** the webhook plumbing works for feed comments — nearly all
+the risk. **What it doesn't:** that *live-video* comments specifically come
+through `feed` (vs. a live-only channel). That last bit still needs one real
+(even 60-second, unlisted) live — but a live needs **no followers**, so it can be
+done anytime.
+
+---
+
 ## Troubleshooting
 
 | Symptom | Likely cause / fix |
