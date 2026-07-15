@@ -117,16 +117,28 @@ def resolve_page_from_token(token):
     before they ever go live.
     """
     try:
+        # Request 'category' — Pages have it, personal profiles don't. This is how
+        # we reject a User token (a common mistake in the Graph API Explorer) that
+        # would otherwise be mislabelled as a Page and silently fail to subscribe.
         r = req.get(
             f'{GRAPH_BASE}/me',
-            params={'fields': 'id,name', 'access_token': token},
+            params={'fields': 'id,name,category', 'access_token': token},
             timeout=HTTP_TIMEOUT,
         )
         data = r.json()
         if 'error' in data:
-            return None, None, data['error'].get('message', 'Invalid token')
+            msg = data['error'].get('message', 'Invalid token')
+            if 'category' in msg.lower() or 'nonexisting field' in msg.lower():
+                return None, None, ('That token is for a personal profile, not a '
+                                    'Facebook Page. In the Graph API Explorer, pick '
+                                    'your Page under "Page Access Tokens".')
+            return None, None, msg
         if not data.get('id'):
             return None, None, 'Token did not resolve to a Page'
+        if not data.get('category'):
+            return None, None, ('That looks like a personal profile, not a Facebook '
+                                'Page. This feature needs a Page Access Token — pick '
+                                'your Page under "Page Access Tokens" in the Explorer.')
         return data.get('id'), data.get('name'), None
     except Exception as e:
         return None, None, str(e)
@@ -601,12 +613,16 @@ def facebook_webhook_receive():
                 comment_id = value.get('comment_id') or value.get('id')
                 message = value.get('message', '') or ''
                 username = frm.get('name') or 'Facebook User'
+                is_buyer = _is_buyer(message, mode, keywords)
+
+                print(f"📩 FB webhook comment: @{username}: \"{message[:60]}\" "
+                      f"-> client {client.id} (buyer={is_buyer})")
 
                 if socketio_ref:
                     socketio_ref.emit('new_comment', {
                         'username': username,
                         'message': message,
-                        'is_buyer': _is_buyer(message, mode, keywords),
+                        'is_buyer': is_buyer,
                         'platform': 'facebook',
                         'comment_id': comment_id,
                         'from_id': from_id,
